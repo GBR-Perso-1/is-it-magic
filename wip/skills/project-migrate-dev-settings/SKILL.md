@@ -7,10 +7,10 @@ description: >
 
 ## Important rules
 
-Read and follow all rules in [`../shared/_ux-rules.md`](../shared/_ux-rules.md).
-Read and follow all rules in [`../shared/_git-rules.md`](../shared/_git-rules.md).
-Read and follow the conventions in [`../shared/_dev-settings-conventions.md`](../shared/_dev-settings-conventions.md).
-Read and follow the context resolution contract in [`../shared/_context-resolution.md`](../shared/_context-resolution.md).
+Read and follow all rules in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_ux-rules.md`.
+Read and follow all rules in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_git-rules.md`.
+Read and follow the conventions in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_dev-settings-conventions.md`.
+Read and follow the context resolution contract in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_context-resolution.md`.
 
 ## Arguments
 
