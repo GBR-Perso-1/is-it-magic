@@ -15,24 +15,51 @@ Read and follow all rules in [`../shared/_ux-rules.md`](../shared/_ux-rules.md).
 
 ## Input
 
-`$ARGUMENTS` — a free-text description of the investigation question. If empty, ask the user to describe the question before proceeding.
+`$ARGUMENTS` — a free-text description of the investigation question. If empty, run **Archaeology Mode** (below) instead of the question-driven flow.
+
+---
+
+### Archaeology Mode (no arguments)
+
+When `$ARGUMENTS` is empty, skip Phases 0–2 entirely and run a full blind repository scan:
+
+1. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/repo-archaeologist.md`.
+   - Pass no additional arguments — the agent operates on the current working directory.
+   - Instruct it to complete all phases and return its structured summary, saving the report to `.claude/reports/archaeology-YYYY-MM-DD.md`.
+2. Wait for the agent to return its summary, then present it using this structure:
+
+```markdown
+## Repository Archaeology — Summary
+
+### Purpose
+<agent's Purpose paragraph>
+
+### Key Workflows
+<agent's Key Workflows list>
+
+### Notable Quirks
+<agent's Notable Quirks list>
+
+### Documentation Gaps
+Total: N gaps (Type A: N — undocumented code | Type B: N — stale docs | Type C: N — unexplained rules)
+
+---
+Full report saved to: <report path>
+```
+
+3. The skill ends here — no further phases.
 
 ---
 
 ### Phase 0 — Understand the question
 
-1. Read `$ARGUMENTS`. If blank, stop and ask:
-   Use `AskUserQuestion` to collect the investigation question:
-   - Question: "What would you like to investigate? Describe your question — for example, a performance concern, a design tradeoff, how a feature works end-to-end, or any analytical question about the codebase or system."
-   - Option: `I'll describe it` (user provides free-text via the automatic Other input)
-
-2. Restate the question as a short investigation brief:
+1. Restate `$ARGUMENTS` as a short investigation brief:
    - **Question** — what the user wants to understand
    - **Scope** — component, layer, or service (if mentioned)
    - **Azure involved?** — does the description mention infrastructure, auth, Key Vault, app registrations, Azure AD, Entra, MSAL, tenant, subscription, Static Web App, App Service, managed identity, deployments, or cloud resources?
    - **Browser involved?** — does the description mention a URL, live app, web UI, API response in a browser, page behaviour, network requests, console errors, or anything that requires observing a running application?
 
-3. Present the brief and ask the user to confirm or correct it using `AskUserQuestion`:
+2. Present the brief and ask the user to confirm or correct it using `AskUserQuestion`:
    - `Looks right — start investigating`
    - `Let me clarify` (user provides correction)
 
