@@ -25,7 +25,7 @@ When `$ARGUMENTS` is empty, skip Phases 0–2 entirely and run a full blind repo
 
 1. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/repo-archaeologist.md`.
    - Pass no additional arguments — the agent operates on the current working directory.
-   - Instruct it to complete all phases and return its structured summary, saving the report to `.claude/reports/archaeology-YYYY-MM-DD.md`.
+   - Instruct it to complete all phases, return its structured summary, and **not write any report file**.
 2. Wait for the agent to return its summary, then present it using this structure:
 
 ```markdown
@@ -42,9 +42,6 @@ When `$ARGUMENTS` is empty, skip Phases 0–2 entirely and run a full blind repo
 
 ### Documentation Gaps
 Total: N gaps (Type A: N — undocumented code | Type B: N — stale docs | Type C: N — unexplained rules)
-
----
-Full report saved to: <report path>
 ```
 
 3. The skill ends here — no further phases.
