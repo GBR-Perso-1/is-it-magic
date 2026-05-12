@@ -47,13 +47,24 @@ The user provides a requirement — either a path to a requirements document (fr
 
 ### Phase 4 — Review (Quality + Design Agents)
 
-9. Spawn **three agents in parallel**:
-   - **Code-quality reviewer**: the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-quality.md` — checks linting, style, and rule compliance.
-   - **Design reviewer**: the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-design.md` — checks requirement coverage, domain boundaries, abstraction quality, and consistency.
-   - **Performance reviewer**: the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-perf.md` — checks EF queries, unbounded loads, N+1 patterns, caching gaps, and frontend perf.
-10. Collect all three reports and present them to the user.
+9. **Stack detection** — before spawning reviewers, run these checks in parallel:
+   ```bash
+   # EF Core present?
+   grep -rl "EntityFrameworkCore" --include="*.csproj" . 2>/dev/null | head -1
+   # Vue/Quasar frontend present?
+   node -e "const p=require('./app/package.json'); console.log(p.dependencies?.vue||p.dependencies?.quasar||'')" 2>/dev/null
+   ```
+   - If either check returns a non-empty result → **perf review applies**, spawn all three reviewers.
+   - If both return empty → **perf review skipped**, spawn quality + design only.
 
-11. Evaluate findings:
+10. Spawn reviewers in parallel (two or three depending on stack detection):
+    - **Code-quality reviewer**: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-quality.md` — linting, style, rule compliance.
+    - **Design reviewer**: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-design.md` — requirement coverage, domain boundaries, abstraction quality, consistency.
+    - **Performance reviewer** *(only when stack detected)*: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-perf.md` — EF queries, unbounded loads, N+1 patterns, caching gaps, frontend perf.
+
+11. Collect all reports and present them to the user.
+
+12. Evaluate findings:
     - **No violations or warnings** → proceed to Phase 5.
     - **Implementation errors only** (code quality issues, bugs, style) → pass findings to the **developer agent** (via `SendMessage`) for corrections. Then re-run Phase 3 (testing) and Phase 4 (review).
     - **Design errors** (wrong abstraction, domain boundary violation, requirement mismatch, missing functionality) → pass findings back to the **architect agent** (via `SendMessage`) to revise the plan. Then re-run from Phase 2.
@@ -64,11 +75,11 @@ The user provides a requirement — either a path to a requirements document (fr
 
 ### Phase 5 — Done
 
-12. Present a final summary to the user:
+13. Present a final summary to the user:
     - What was implemented (files created/modified)
     - Test results (pass/fail counts)
     - Review outcome (clean / accepted with notes)
-13. Use `AskUserQuestion` with options:
+14. Use `AskUserQuestion` with options:
     - "Commit these changes (Recommended)"
     - "I want to review the changes manually"
 

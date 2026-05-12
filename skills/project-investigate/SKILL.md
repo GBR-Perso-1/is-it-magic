@@ -1,6 +1,11 @@
 ---
 name: project-investigate
-description: Investigate an open-ended question about a codebase or system. Explores code and optionally Azure. Reports findings, patterns, tradeoffs, and areas to explore — never diagnoses bugs or proposes fixes.
+description: >
+  Investigate a codebase or system. Three modes:
+  no args = full repository archaeology;
+  "debug <symptom>" = bug-hunt (locate root cause, report only);
+  "<question>" = analytical investigation (patterns, tradeoffs, design).
+  Always read-only — never modifies code or infrastructure.
 ---
 
 ## Important rules
@@ -11,22 +16,27 @@ Read and follow all rules in [`../shared/_ux-rules.md`](../shared/_ux-rules.md).
 
 - **Read-only.** This skill and every agent it spawns must never modify source files, configuration, or Azure resources.
 - **No fixes.** Report findings only; the user decides how to act on them.
-- **Not a bug-finder.** Look for patterns, bottlenecks, design tradeoffs, and usage characteristics — not defects.
 
 ## Input
 
-`$ARGUMENTS` — a free-text description of the investigation question. If empty, run **Archaeology Mode** (below) instead of the question-driven flow.
+`$ARGUMENTS` determines the mode:
+
+| Value | Mode |
+|---|---|
+| Empty | **Archaeology** — full blind repo scan |
+| Starts with `debug` | **Debug** — bug-hunt; strip the word "debug" and treat the remainder as the symptom description |
+| Anything else | **Investigate** — analytical question-driven exploration |
 
 ---
 
 ### Archaeology Mode (no arguments)
 
-When `$ARGUMENTS` is empty, skip Phases 0–2 entirely and run a full blind repository scan:
+When `$ARGUMENTS` is empty, skip all phases and run a full blind repository scan:
 
 1. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/repo-archaeologist.md`.
    - Pass no additional arguments — the agent operates on the current working directory.
    - Instruct it to complete all phases, return its structured summary, and **not write any report file**.
-2. Wait for the agent to return its summary, then present it using this structure:
+2. Wait for the agent to return its summary, then present it:
 
 ```markdown
 ## Repository Archaeology — Summary
@@ -44,73 +54,207 @@ When `$ARGUMENTS` is empty, skip Phases 0–2 entirely and run a full blind repo
 Total: N gaps (Type A: N — undocumented code | Type B: N — stale docs | Type C: N — unexplained rules)
 ```
 
-3. The skill ends here — no further phases.
+3. The skill ends here.
 
 ---
 
-### Phase 0 — Understand the question
+### Debug Mode (`debug <symptom>`)
+
+#### Phase 0 — Understand the issue
+
+1. If the symptom text (after stripping "debug") is blank, ask via `AskUserQuestion`:
+   - Question: "What issue or symptom would you like investigated? Include any error messages, affected component names, or reproduction steps you already have."
+   - Option: `I'll describe it`
+
+2. Restate as a short investigation brief:
+   - **Symptom** — what the user is seeing
+   - **Suspected area** — component, layer, or service (if mentioned)
+   - **Azure involved?** — infrastructure, auth, Key Vault, app registrations, Azure AD, Entra, MSAL, tenant, subscription, Static Web App, App Service, managed identity, deployments, or cloud resources
+   - **Browser involved?** — URL, live app, web UI, API response in a browser, page behaviour, network requests, console errors, or anything requiring a running application
+
+3. Present the brief and ask via `AskUserQuestion`:
+   - `Looks right — start investigating`
+   - `Let me clarify`
+
+#### Phase 0.5 — Quick scan
+
+Using only Glob, Grep, and Read — no agents:
+
+1. Use `Glob` to locate files matching the suspected area.
+2. Use `Grep` to search for error-site indicators: exception types, error messages, null-guard patterns, relevant function names.
+3. Read the most relevant 3–5 files focusing on error-handling paths and the suspected call chain.
+4. Produce a **Quick Debug Summary**:
+
+```markdown
+## Quick Debug Summary — <one-line issue title>
+
+### Suspected error site
+<file path + approximate location, one-sentence explanation>
+
+### Supporting evidence
+<bullet list: file paths, error-handling patterns, code observations>
+
+### Limitations of this scan
+<what static analysis cannot determine>
+```
+
+Ask via `AskUserQuestion`:
+- `This is enough — I have what I need`
+- `Go deeper — run full investigation with agents`
+
+If **"This is enough"**: end here.
+
+#### Phase 1 — Parallel investigation
+
+Launch agents simultaneously based on what is relevant.
+
+**1a — Code investigation (always)**
+
+Spawn `${CLAUDE_PLUGIN_ROOT}/agents/repo-archaeologist.md` with:
+
+```
+IMPORTANT: You are being used for targeted bug investigation, not a repository overview.
+Do NOT write any file to .claude/reports/ and do NOT produce an archaeology report.
+Produce only the Bug Location Report format below.
+
+Your goal is to locate and understand the bug — NOT to fix it.
+
+Issue brief:
+<paste the brief from Phase 0>
+
+Investigation tasks:
+1. Identify the files, classes, and functions most likely involved in the symptom.
+2. Trace the relevant data flow or call chain end-to-end.
+3. Look for obvious defects: null paths, missing guards, incorrect logic, wrong assumptions, mismatched types, off-by-one errors, race conditions, misconfigured values.
+4. Note any related tests (passing or failing) that are relevant.
+5. Flag any code patterns that are surprising or deviate from surrounding conventions.
+
+---
+
+## Bug Location Report
+
+### Suspected Root Cause
+One paragraph. What you think is actually wrong and why.
+
+### Evidence
+Bullet list. For each piece: file path + line range, what it shows, why it is relevant.
+
+### Data / Call Flow
+Step-by-step trace from entry point to the point of failure (file:line for each step).
+
+### Related Tests
+List test files covering the affected area. Note if passing, failing, or missing.
+
+### Uncertainties
+What could not be determined from static analysis alone.
+```
+
+**1b — Browser investigation** (only when Browser is relevant) — see shared browser steps below.
+
+**1c — Azure investigation** (only when Azure is relevant) — see shared Azure steps below.
+
+#### Phase 2 — Confirmation gates
+
+Same as Investigate Mode Phase 2.
+
+#### Phase 3 — Synthesise and report
+
+```markdown
+## Debug Report — <one-line issue title>
+
+### Issue
+<symptom from Phase 0 brief>
+
+---
+
+### Suspected Root Cause
+<from the Bug Location Report>
+
+### Evidence
+<from the Bug Location Report>
+
+### Data / Call Flow
+<from the Bug Location Report>
+
+### Related Tests
+<from the Bug Location Report>
+
+---
+
+### Browser Findings
+<Browser Findings section — or "Not investigated">
+
+---
+
+### Azure Findings
+<Azure Findings Report — or "Not investigated", "Skipped by user", "Not logged in">
+
+---
+
+### Open Uncertainties
+<merged list from both agents>
+
+---
+
+> This report is read-only. No code or infrastructure was modified.
+> **Next step**: use `/project-decide` to evaluate solution options, then `/project-implement-fix` or `/project-implement-new-features` to act.
+```
+
+---
+
+### Investigate Mode (`<question>`)
+
+#### Phase 0 — Understand the question
 
 1. Restate `$ARGUMENTS` as a short investigation brief:
    - **Question** — what the user wants to understand
    - **Scope** — component, layer, or service (if mentioned)
-   - **Azure involved?** — does the description mention infrastructure, auth, Key Vault, app registrations, Azure AD, Entra, MSAL, tenant, subscription, Static Web App, App Service, managed identity, deployments, or cloud resources?
-   - **Browser involved?** — does the description mention a URL, live app, web UI, API response in a browser, page behaviour, network requests, console errors, or anything that requires observing a running application?
+   - **Azure involved?** — infrastructure, auth, Key Vault, app registrations, Azure AD, Entra, MSAL, tenant, subscription, Static Web App, App Service, managed identity, deployments, or cloud resources
+   - **Browser involved?** — URL, live app, web UI, API response in a browser, page behaviour, network requests, console errors, or anything requiring a running application
 
-2. Present the brief and ask the user to confirm or correct it using `AskUserQuestion`:
+2. Present the brief and ask via `AskUserQuestion`:
    - `Looks right — start investigating`
-   - `Let me clarify` (user provides correction)
+   - `Let me clarify`
 
----
+#### Phase 0.5 — Quick scan
 
-### Phase 0.5 — Quick scan
+Using only Glob, Grep, and Read — no agents:
 
-Using only Glob, Grep, and Read tools — without spawning any agents — perform a lightweight self-scan targeted at the investigation question from the confirmed brief.
-
-1. Use `Glob` to locate files whose names or paths are likely relevant to the question's subject area (e.g. matching key nouns or component names from the brief).
-2. Use `Grep` to search for key symbols, identifiers, or terms extracted from the brief across the codebase.
-3. Read the most relevant 3–5 files or file sections identified by steps 1 and 2.
-4. Produce a **Quick Findings** summary in this format:
+1. Use `Glob` to locate files relevant to the question's subject area.
+2. Use `Grep` to search for key symbols, identifiers, or terms from the brief.
+3. Read the most relevant 3–5 files or sections.
+4. Produce a **Quick Findings** summary:
 
 ```markdown
 ## Quick Findings — <one-line question title>
 
 ### What was found
-<bullet list: relevant files, key symbols, patterns, or structural observations directly answering the question — grounded in specific file paths>
+<bullet list: relevant files, key symbols, patterns, structural observations>
 
 ### Limitations of this scan
-<what the quick scan could not determine — e.g. runtime behaviour, cross-service flows, Azure state>
+<what the quick scan could not determine>
 ```
 
-Present the Quick Findings to the user, then ask via `AskUserQuestion`:
+Ask via `AskUserQuestion`:
+- `This is enough — I have what I need`
+- `Go deeper — run full investigation with agents`
 
-- **Question**: "Quick scan complete. Is this sufficient for your investigation?"
-- **Options**:
-  - `This is enough — I have what I need`
-  - `Go deeper — run full investigation with agents`
+If **"This is enough"**: end here.
 
-If the user selects **"This is enough"**: the skill ends here. Do not proceed to Phase 1.
+#### Phase 1 — Parallel investigation
 
-If the user selects **"Go deeper"**: proceed to Phase 1 below.
+Launch agents simultaneously based on what is relevant.
 
----
+**1a — Code investigation (always)**
 
-### Phase 1 — Parallel investigation
-
-Launch agents simultaneously based on what is relevant:
-- **Code agent** — always
-- **Azure agent** — only when Azure is relevant (from brief)
-- **Browser investigation** — only when Browser is relevant (from brief); run inline, not via a spawned agent
-
-#### 1a — Code investigation (always)
-
-Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/repo-archaeologist.md`.
-
-Prompt it with:
+Spawn `${CLAUDE_PLUGIN_ROOT}/agents/repo-archaeologist.md` with:
 
 ```
-IMPORTANT: You are being used for targeted analytical investigation, not a repository overview. Override your standard output format entirely — do NOT write any file to .claude/reports/ and do NOT produce an archaeology report. Instead, produce only the Code Investigation Report format specified below.
+IMPORTANT: You are being used for targeted analytical investigation, not a repository overview.
+Do NOT write any file to .claude/reports/ and do NOT produce an archaeology report.
+Produce only the Code Investigation Report format below.
 
-You are investigating an analytical question about the codebase. Your goal is NOT to find bugs or propose fixes — only to identify patterns, bottlenecks, design tradeoffs, and usage characteristics relevant to the question.
+Your goal is NOT to find bugs — only to identify patterns, bottlenecks, design tradeoffs, and usage characteristics.
 
 Investigation brief:
 <paste the brief from Phase 0>
@@ -123,8 +267,6 @@ Investigation tasks:
 5. Note design tradeoffs: what is the current approach optimised for, and what does it trade away?
 6. Flag any patterns that are notable, unusual, or that would surprise a new developer.
 
-Output a structured Code Investigation Report (see format below). Do NOT suggest fixes.
-
 ---
 
 ## Code Investigation Report
@@ -133,111 +275,30 @@ Output a structured Code Investigation Report (see format below). Do NOT suggest
 One paragraph. What the investigation question is about and what you found at a high level.
 
 ### Relevant Code Areas
-Bullet list. For each area: file path + key locations, what it does, and why it is relevant to the question.
+Bullet list. For each area: file path + key locations, what it does, why it is relevant.
 
 ### Data / Call Flow
-Step-by-step trace through the relevant path (file:line for each step where possible).
+Step-by-step trace through the relevant path (file:line for each step).
 
 ### Patterns & Characteristics
-Bullet list. Each item describes an observable characteristic: a design pattern in use, a performance trait, a coupling, a cohesion property, or a notable convention.
+Bullet list: design patterns in use, performance traits, coupling, cohesion, notable conventions.
 
 ### Design Tradeoffs
-What the current approach is optimised for, and what it sacrifices. Grounded in specific code evidence.
+What the current approach is optimised for and what it sacrifices. Grounded in specific code evidence.
 
 ### Uncertainties
-What could not be determined from static analysis alone (e.g. runtime behaviour, load characteristics, external dependencies).
+What could not be determined from static analysis alone.
 ```
 
-#### 1b — Browser investigation (only when Browser is relevant)
+**1b — Browser investigation** (only when Browser is relevant) — see shared browser steps below.
 
-Use Claude in Chrome tools directly (no agent spawn). Load each tool via `ToolSearch` with `select:mcp__claude-in-chrome__<tool_name>` before calling it.
+**1c — Azure investigation** (only when Azure is relevant) — see shared Azure steps below.
 
-Steps:
-1. Load `mcp__claude-in-chrome__tabs_context_mcp` and call it to see what tabs are already open. If a relevant tab (matching the URL or app from the brief) is already open, reuse it; otherwise create a new tab.
-2. Navigate to the URL or app identified in the brief. If no URL was given, ask the user via `AskUserQuestion` before navigating:
-   - Question: "What URL should I open to investigate this in the browser?"
-   - Option: `I'll provide it` (user types in the Other input)
-3. Use `mcp__claude-in-chrome__get_page_text` and `mcp__claude-in-chrome__read_page` to capture page content.
-4. Use `mcp__claude-in-chrome__read_console_messages` (with a relevant `pattern` if possible) to collect any console errors or logs.
-5. Use `mcp__claude-in-chrome__read_network_requests` to observe API calls, status codes, and payloads relevant to the investigation.
-6. If useful, use `mcp__claude-in-chrome__javascript_tool` to inspect DOM state or evaluate expressions — never trigger alert/confirm/prompt dialogs.
-7. Produce a **Browser Findings** section:
+#### Phase 2 — Confirmation gates
 
-```markdown
-### Browser Findings
+Same as Debug Mode Phase 2.
 
-#### URL / App
-<URL navigated to>
-
-#### Page State
-<what the page shows, key UI elements, visible data>
-
-#### Console
-<relevant console messages, errors, warnings — with patterns used to filter>
-
-#### Network Requests
-<key API calls: method, URL, status, notable response data>
-
-#### Observations
-<bullet list of browser-observable behaviours relevant to the investigation question>
-```
-
-**Constraints:**
-- Never trigger browser dialogs (alert, confirm, prompt).
-- Do not modify page state beyond what is needed to observe the system.
-- If a tool call fails after 2 attempts, note the failure and move on — do not loop.
-
-#### 1c — Azure investigation (only when Azure is relevant)
-
-Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/azure-investigator.md`.
-
-Prompt it with:
-
-```
-You are investigating an Azure infrastructure question as part of an analytical investigation.
-Your goal is NOT to find faults — only to characterise the Azure environment relevant to the question.
-
-Investigation brief:
-<paste the brief from Phase 0>
-
-Begin Phase 0 only: run your detection flow and auth check, then stop and return your findings. Do not investigate yet.
-```
-
-Wait for the agent to return its Phase 0 output (active Azure context or "not logged in" state). Proceed to Phase 2.
-
----
-
-### Phase 2 — Browser and Azure context confirmation gates
-
-#### Browser
-
-If browser investigation produced findings: include the **Browser Findings** section in Phase 3 as-is. No gate required — the investigation was local and read-only.
-
-#### Azure
-
-Receive the Phase 0 output from the azure-investigator agent.
-
-If the agent reported it is **NOT logged in**: inform the user and skip Azure investigation. Include a note in the final report.
-
-If the agent reported an **active context**: present it to the user via `AskUserQuestion`:
-
-The Azure investigation agent is connected to tenant <tenantId>, subscription <name> (<subscriptionId>), as user <user>. Is this the correct Azure environment for this investigation?
-
-Options:
-- `Yes — correct environment, continue`
-- `No — skip Azure investigation`
-
-If the user confirms: send a `SendMessage` to the existing azure-investigator agent to proceed with Phase 1 investigation (pass the confirmed context and the investigation brief). Wait for the Azure Findings Report.
-
-If the user declines: note "Azure investigation skipped by user" in the final report. Do not continue the agent.
-
----
-
-### Phase 3 — Synthesise and report
-
-Wait for both agents to complete (or for the code agent alone if Azure was not applicable).
-
-Present the consolidated Investigation Report to the user:
+#### Phase 3 — Synthesise and report
 
 ```markdown
 ## Investigation Report — <one-line question title>
@@ -265,12 +326,12 @@ Present the consolidated Investigation Report to the user:
 ---
 
 ### Browser Findings
-<Browser Findings section from Phase 1b — or "Not investigated (no live app or URL identified in the question)">
+<Browser Findings section — or "Not investigated">
 
 ---
 
 ### Azure Findings
-<verbatim Azure Findings Report from the azure-investigator agent — or "Not investigated (Azure not relevant)", "Skipped by user", "Not logged in — no active az CLI session">
+<Azure Findings Report — or "Not investigated", "Skipped by user", "Not logged in">
 
 ---
 
@@ -280,8 +341,65 @@ Present the consolidated Investigation Report to the user:
 ---
 
 > This report is read-only. No code or infrastructure was modified.
-> **Next step**: use `/project-decide` to evaluate solution options and get a recommended direction — then use `/project-implement-fix` or `/project-implement-new-features` to act.
+> **Next step**: use `/project-decide` to evaluate solution options, then `/project-implement-fix` or `/project-implement-new-features` to act.
 ```
+
+---
+
+## Shared: Browser Investigation (Phase 1b)
+
+Use Claude in Chrome tools directly (no agent spawn). Load each tool via `ToolSearch select:mcp__claude-in-chrome__<tool_name>` before calling it.
+
+1. Load `mcp__claude-in-chrome__tabs_context_mcp` and call it. Reuse a matching tab or create a new one.
+2. Navigate to the URL from the brief. If no URL was given, ask via `AskUserQuestion` first.
+3. Use `get_page_text` and `read_page` to capture page content.
+4. Use `read_console_messages` (with a relevant `pattern`) to collect errors and logs.
+5. Use `read_network_requests` to observe API calls, status codes, and payloads.
+6. If useful, use `javascript_tool` to inspect DOM state — never trigger alert/confirm/prompt.
+7. Produce a **Browser Findings** section:
+
+```markdown
+### Browser Findings
+
+#### URL / App
+<URL navigated to>
+
+#### Page State
+<what the page shows, key UI elements, visible data>
+
+#### Console
+<relevant console messages, errors, warnings>
+
+#### Network Requests
+<key API calls: method, URL, status, notable response data>
+
+#### Observations
+<bullet list of browser-observable behaviours relevant to the question or symptom>
+```
+
+**Constraints:** Never trigger browser dialogs. Do not modify page state. If a tool fails after 2 attempts, note the failure and move on.
+
+---
+
+## Shared: Azure Investigation (Phase 1c)
+
+Spawn `${CLAUDE_PLUGIN_ROOT}/agents/azure-investigator.md` with:
+
+```
+Investigation brief:
+<paste the brief from Phase 0>
+
+Begin Phase 0 only: run your detection flow and auth check, then stop and return your findings.
+```
+
+**Confirmation gate (Phase 2):**
+
+- **NOT logged in** → inform user, skip Azure, note in report.
+- **Active context** → present tenant/subscription/user to the user via `AskUserQuestion`:
+  - `Yes — correct environment, continue`
+  - `No — skip Azure investigation`
+- If confirmed: `SendMessage` to the agent to proceed with Phase 1. Wait for the Azure Findings Report.
+- If declined: note "Azure investigation skipped by user" in the report.
 
 ---
 
@@ -289,5 +407,5 @@ Present the consolidated Investigation Report to the user:
 
 - Be analytical and neutral — surface what exists, not what should change.
 - Do not propose solutions, fixes, or refactors.
-- If the agents surface contradictory evidence, present both views.
+- If agents surface contradictory evidence, present both views.
 - Use British English throughout.
