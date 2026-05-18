@@ -145,7 +145,8 @@ Present the full Decision Report to the user:
 ---
 
 > This report is read-only. No code or infrastructure was modified.
-> **Next step**: to implement the recommended option, use:
+> **Next step**: use `/project-requirements` to produce a formal requirements document before implementation.
+> **Or, to act immediately without a formal requirements document**:
 > - `/project-implement-fix` — for contained fixes and small changes
 > - `/project-implement-new-features` — for larger structural changes or new capabilities
 ```

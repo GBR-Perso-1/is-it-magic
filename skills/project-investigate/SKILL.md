@@ -197,7 +197,7 @@ Same as Investigate Mode Phase 2.
 ---
 
 > This report is read-only. No code or infrastructure was modified.
-> **Next step**: use `/project-decide` to evaluate solution options, then `/project-implement-fix` or `/project-implement-new-features` to act.
+> **Next step**: use `/project-decide` to evaluate solution options, or `/project-requirements` to go straight to requirements — then `/project-implement-fix` or `/project-implement-new-features` to act.
 ```
 
 ---
@@ -341,7 +341,7 @@ Same as Debug Mode Phase 2.
 ---
 
 > This report is read-only. No code or infrastructure was modified.
-> **Next step**: use `/project-decide` to evaluate solution options, then `/project-implement-fix` or `/project-implement-new-features` to act.
+> **Next step**: use `/project-decide` to evaluate solution options, or `/project-requirements` to go straight to requirements — then `/project-implement-fix` or `/project-implement-new-features` to act.
 ```
 
 ---

@@ -1,6 +1,6 @@
 ---
-name: project-brainstorm
-description: Brainstorm and write requirements for app evolution. Explore the codebase for context but never propose concrete implementation.
+name: project-requirements
+description: Produce a formal requirements document for app evolution. Explores the codebase for context, facilitates a structured conversation with the user, and outputs a versioned requirements document — never proposes implementation details.
 ---
 
 ## Important rules
@@ -115,6 +115,20 @@ One paragraph describing the overall direction.
 ## Out of Scope
 
 - Items explicitly deferred or rejected during brainstorming.
+
+## Delivery Phases *(optional — omit for simple features)*
+
+Break the implementation into ordered batches. Each phase should be deliverable independently.
+
+| Phase | Scope | Layers affected |
+| ----- | ----- | --------------- |
+| 1     | ...   | e.g. Domain entities, DB migration |
+| 2     | ...   | e.g. Application commands + API endpoints |
+| 3     | ...   | e.g. App (frontend pages + stores) |
+| 4     | ...   | e.g. MCP tool surface |
+| 5     | ...   | e.g. Terraform / infrastructure |
+
+> Omit this section entirely if the feature is small enough to implement in a single pass.
 ```
 
 7. Present the draft to the user via `AskUserQuestion` with options:
@@ -132,3 +146,9 @@ One paragraph describing the overall direction.
 - Keep the energy collaborative and forward-looking.
 - When the user drifts into implementation ("we could use a queue for that"), gently redirect: _"That's an implementation detail — for now, what should the user experience be?"_
 - Use British English throughout.
+
+---
+
+> **Next step**: once the requirements document is saved, use:
+> - `/project-implement-new-features` — to implement using the full architect → dev → test → review pipeline
+> - `/project-implement-fix` — for small or contained changes that don't need the full pipeline

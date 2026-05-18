@@ -57,10 +57,11 @@ a clear preferred direction — not just raw findings.
 - **REQ-1.7**: The skill is strictly read-only. It must not modify source
   files, config, Azure resources, or any project artefact.
 
-- **REQ-1.8**: The final report ends with a handoff pointer directing the user
-  to `/project-implement-fix` (for contained fixes) or
-  `/project-implement-new-features` (for larger changes), so the transition
-  from decision to action is explicit.
+- **REQ-1.8**: The final report ends with a handoff footer whose primary next
+  step is `/project-requirements` (to produce a formal requirements document
+  before implementation), with `/project-implement-fix` and
+  `/project-implement-new-features` listed as secondary fallbacks for users
+  who want to act immediately without a formal requirements document.
 
 #### Decisions & Assumptions
 
@@ -93,5 +94,5 @@ a clear preferred direction — not just raw findings.
 - Re-running a codebase scan or spawning investigation agents (REQ-1.7)
 - Asking the user to supply their own options before evaluation
 - Generating implementation plans, code snippets, or file-level changes
-- Producing a requirements document (that's `/project-brainstorm`)
+- Producing a requirements document (that's `/project-requirements`)
 - Saving the options report to disk — it lives in the conversation
