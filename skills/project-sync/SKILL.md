@@ -20,30 +20,51 @@ Read and follow all rules in [`../shared/_ux-rules.md`](../shared/_ux-rules.md).
 
 If `$ARGUMENTS` is empty, use `AskUserQuestion` to ask the user what they want to sync and between which projects before proceeding.
 
-## Phase 1 — Scope & Target Discovery
+## Phase 1 — Target Discovery
 
-### Step 1.1: Resolve SCOPE_ROOT
+### Step 1.1: Extract the target name
 
-- Derive SCOPE_ROOT as the parent directory of the current working directory (cwd)
-- Example: cwd = `/workspace/Acme.Applications/Project1/` → SCOPE_ROOT = `/workspace/Acme.Applications/`
-- Verify SCOPE_ROOT's directory name ends with `.Applications`
-  - If it does: proceed silently
-  - If it does not: warn "The parent directory '<name>' does not follow the <Name>.Applications naming convention — continuing anyway." then continue
-- Check whether the user's argument contains an explicit scope name (e.g. "Perso" or "Perso.Applications")
-  - If found: locate a sibling directory matching `<scope>.Applications` relative to SCOPE_ROOT's parent and use that as SCOPE_ROOT
-  - If that named scope directory does not exist: stop with "Scope directory '<name>.Applications' not found. Verify the name and try again."
+Extract the target name or phrase from `$ARGUMENTS`. Target names typically follow directional keywords: "to \<name\>", "into \<name\>", "from \<name\>", "sync to \<name\>", "pull from \<name\>". If no target name can be extracted, ask via `AskUserQuestion`:
+- Question: "Which project is the sync target?"
+- Option: `I'll type it` (user provides free text)
 
-### Step 1.2: List candidate targets
+### Step 1.2: Run the locator agent
 
-- List all immediate subdirectories of SCOPE_ROOT, excluding the current project (cwd basename)
-- If the candidate list is empty: stop with "No sibling projects found in '<SCOPE_ROOT>'. Nothing to sync."
+Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/project-locator.md`.
 
-### Step 1.3: Resolve target
+Prompt it with:
 
-- Inspect `$ARGUMENTS` for a target name or phrase (e.g. "to project2", "into the template", "from MyOtherApp")
-- If a candidate name is clearly implied (case-insensitive substring match): select it and proceed to Phase 2 with a note showing the selected target
-- If ambiguous or not mentioned: present the full candidate list via `AskUserQuestion` and ask the user to pick one
-- If the resolved target directory does not exist on disk: stop with "Target directory '<path>' does not exist."
+```
+Locate project: <extracted target name>
+```
+
+Wait for the agent to return its result block.
+
+### Step 1.3: Resolve the target path from the result block
+
+Branch on the `Status:` field in the result block:
+
+**`Status: MATCH`**
+- Extract the `Path:` value and record it as `TARGET_PATH`.
+- If the confidence is **High**: proceed to Phase 2 silently.
+- If the confidence is **Medium** or **Low**: ask via `AskUserQuestion`:
+  - Question: "The locator found `<folder name>` in `<Scope>` with **<confidence>** confidence (`<rationale>`). Is this the right sync target?"
+  - Options:
+    - `Yes — this is correct`
+    - `No — search again with a different name`
+  - If "No": ask for a revised name and repeat from Step 1.1 with the new input.
+
+**`Status: MULTIPLE_MATCHES`**
+- Present the ranked match list via `AskUserQuestion`:
+  - Question: "The name `<input>` matched multiple projects. Which one is the sync target?"
+  - Options: one per match — label is `<folder-name> (<scope>)`, description is the confidence and rationale
+- Record the selected `Path:` as `TARGET_PATH` and proceed to Phase 2.
+
+**`Status: NO_MATCH`**
+- Display the agent's no-match output and stop.
+
+**`Status: ERROR`**
+- Display the agent's error message and stop.
 
 ## Phase 2 — Direction Resolution
 
@@ -140,7 +161,7 @@ Run `git diff` in <DESTINATION_PATH> to review all changes before committing.
 ## Guardrails
 
 - Never stage, commit, or push any file.
-- Never create a directory at SCOPE_ROOT or target level — only create intermediate directories within an already-existing target project when copying a file into a subdirectory that doesn't exist yet.
+- Never create a directory at workspace-root or target level — only create intermediate directories within an already-existing target project when copying a file into a subdirectory that doesn't exist yet.
 - Never overwrite a destination file without an AI merge step — if a destination file exists, always merge rather than overwrite blindly.
 - Never proceed with an empty file list.
 - Always confirm with the user before any file is written (Phase 3 gate).
