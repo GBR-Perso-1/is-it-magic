@@ -1,6 +1,6 @@
 ---
 name: project-decide
-description: Decision layer between investigation/debug and implementation. Reads findings from the conversation, generates 2–4 distinct solution options, evaluates each with pros/cons and effort signal, and commits to a recommended option grounded in long-term maintainability and architectural purity. Strictly read-only — no agents, no file I/O.
+description: Decision layer between investigation/debug and implementation. Reads findings from the conversation, calibrates a recommendation stance based on project maturity and debt tolerance, generates 2–4 distinct solution options informed by that stance, evaluates each with pros/cons and effort signal, and commits to a recommended option grounded in long-term maintainability and architectural correctness. Strictly read-only — no agents, no file I/O.
 ---
 
 ## Important rules
@@ -40,6 +40,37 @@ The skill's primary input is the **investigation or debug report already present
 
 ---
 
+### Phase 0.5 — Calibrate recommendation stance
+
+Ask the user two questions to establish context. Use `AskUserQuestion` for each:
+
+**Question 1 — Project maturity**
+- Question: "What is the current maturity of this project?"
+- Options:
+  - `Pre-production — not yet live with real users`
+  - `Active development — live but still evolving rapidly`
+  - `Production with users — live with real users; changes carry disruption risk`
+
+**Question 2 — Debt tolerance**
+- Question: "How would you describe the current technical debt trajectory?"
+- Options:
+  - `Accumulating fast — shortcuts are piling up`
+  - `Manageable — some debt present but under control`
+  - `Under control — debt is actively managed`
+
+**Derive the recommendation stance** from the two answers as follows:
+
+| Maturity | Debt tolerance | Stance |
+|----------|----------------|--------|
+| Pre-production | Accumulating fast | **Structural correctness first** — prefer the structurally correct option; any shortcut must be explicitly justified in the recommendation. |
+| Active development | Accumulating fast | **Structural correctness first** — prefer the structurally correct option; any shortcut must be explicitly justified in the recommendation. |
+| Production with users | Manageable or Under control | **Minimal disruption first** — prefer the lowest-disruption option unless the structural benefit is clear and immediately realisable. |
+| All other combinations | — | **Balanced** — weigh structural correctness against disruption cost; call it either way based on the evidence. |
+
+Record the derived stance as **Recommendation Stance: [label]** and carry it forward explicitly into Phase 2 and Phase 3.
+
+---
+
 ### Phase 1 — Restate the core problem
 
 1. From the findings, derive a concise **Problem Statement** covering:
@@ -62,9 +93,14 @@ The skill's primary input is the **investigation or debug report already present
 
 Generate between 2 and 4 distinct solution options by reasoning over the confirmed Problem Statement and the findings. Options must be meaningfully different directions — not variations of the same approach.
 
+**Stance-informed framing**: Option generation must be informed by the **Recommendation Stance** derived in Phase 0.5:
+- **Structural correctness first** → frame the structurally correct option as the baseline direction; the smaller-change option is the explicit trade-off alternative.
+- **Minimal disruption first** → frame the smallest safe change as the baseline; the structural option is the higher-cost alternative.
+- **Balanced** → present both directions as co-equal candidates.
+
 **Mandatory option types** (always include both, even if the option count is 2):
 - At least one option must represent the **smallest safe change** — the minimum intervention needed to address the problem without restructuring.
-- At least one option must represent the **most structurally correct** solution — the approach that best aligns with the architectural conventions and design principles observed in the investigation report.
+- At least one option must represent the **most structurally correct** solution — the approach that best aligns with sound design principles, as evidenced by but not limited to the conventions observed in the investigation report.
 
 If user framing constraints from `$ARGUMENTS` rule out a direction (e.g. "we can't touch the DB schema"), do not generate options that violate that constraint. Note the constraint in the relevant section.
 
@@ -91,17 +127,24 @@ Effort is always relative — calibrate across the full set of options generated
 
 ### Phase 3 — Evaluate and recommend
 
-1. Review all options against the primary evaluation lens: **long-term maintainability and architectural purity**, where "architectural purity" is assessed relative to the conventions and patterns observed in the investigation report — not against an external standard.
+1. Review all options against the primary evaluation lens: **long-term maintainability and architectural correctness**, where "architectural correctness" is assessed against sound design principles — not merely against what the existing codebase does today. Conventions observed in the investigation report are evidence, not the standard.
+
+   Apply the **Recommendation Stance** from Phase 0.5 when weighing options:
+   - **Structural correctness first**: the structurally correct option is the default recommendation; departing from it requires an explicit, evidence-grounded justification.
+   - **Minimal disruption first**: the lowest-disruption option is the default recommendation; a structural option can only override it if its benefit is clear and immediately realisable.
+   - **Balanced**: weigh both lenses and call it based on the evidence.
+
+   **Debt deferral obligation**: If the recommended option is the conservative or smallest-change option, explicitly state (a) what technical debt it defers and (b) whether that debt is acceptable given the Recommendation Stance.
 
 2. Select one **Recommended Option**. State it clearly with a short rationale (2–4 sentences) grounded in the evaluation lens.
 
-3. If a different option would be preferred under specific conditions (e.g. "if a quick hotfix is needed before the next release", "if the team decides to defer the schema change"), state that conditional preference explicitly alongside the main recommendation.
+3. If a different option would be preferred under specific conditions, state that conditional preference explicitly alongside the main recommendation. Frame conditions neutrally — do not imply that structural options are inherently conditional or exceptional choices.
 
 ---
 
 ### Phase 4 — Produce the Decision Report
 
-Present the full Decision Report to the user:
+Present the full Decision Report to the user. Ensure the rationale in the Recommended Option section explicitly references the **Recommendation Stance** derived in Phase 0.5.
 
 ```markdown
 ## Decision Report — <one-line problem title>
@@ -137,7 +180,7 @@ Present the full Decision Report to the user:
 
 **Option {N}: <title>**
 
-<rationale — 2–4 sentences grounded in long-term maintainability and architectural purity>
+<rationale — 2–4 sentences grounded in long-term maintainability, architectural correctness, and the Recommendation Stance>
 
 **Conditional preference**: <if a different option would be better under specific conditions, state it here — or omit this line if no conditional preference applies>
 
