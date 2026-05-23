@@ -1,6 +1,6 @@
 ---
 name: project-decide
-description: Decision layer between investigation/debug and implementation. Reads findings from the conversation, calibrates a recommendation stance based on project maturity and debt tolerance, generates 2–4 distinct solution options informed by that stance, evaluates each with pros/cons and effort signal, and commits to a recommended option grounded in long-term maintainability and architectural correctness. Strictly read-only — no agents, no file I/O.
+description: Decision layer between investigation/debug and implementation. Reads findings from the conversation, infers debt trajectory from the investigation evidence, generates 2–4 distinct solution options, evaluates each with pros/cons and effort signal, and commits to a recommended option grounded in long-term maintainability and architectural correctness. Strictly read-only — no agents, no file I/O.
 ---
 
 ## Important rules
@@ -40,37 +40,6 @@ The skill's primary input is the **investigation or debug report already present
 
 ---
 
-### Phase 0.5 — Calibrate recommendation stance
-
-Ask the user two questions to establish context. Use `AskUserQuestion` for each:
-
-**Question 1 — Project maturity**
-- Question: "What is the current maturity of this project?"
-- Options:
-  - `Pre-production — not yet live with real users`
-  - `Active development — live but still evolving rapidly`
-  - `Production with users — live with real users; changes carry disruption risk`
-
-**Question 2 — Debt tolerance**
-- Question: "How would you describe the current technical debt trajectory?"
-- Options:
-  - `Accumulating fast — shortcuts are piling up`
-  - `Manageable — some debt present but under control`
-  - `Under control — debt is actively managed`
-
-**Derive the recommendation stance** from the two answers as follows:
-
-| Maturity | Debt tolerance | Stance |
-|----------|----------------|--------|
-| Pre-production | Accumulating fast | **Structural correctness first** — prefer the structurally correct option; any shortcut must be explicitly justified in the recommendation. |
-| Active development | Accumulating fast | **Structural correctness first** — prefer the structurally correct option; any shortcut must be explicitly justified in the recommendation. |
-| Production with users | Manageable or Under control | **Minimal disruption first** — prefer the lowest-disruption option unless the structural benefit is clear and immediately realisable. |
-| All other combinations | — | **Balanced** — weigh structural correctness against disruption cost; call it either way based on the evidence. |
-
-Record the derived stance as **Recommendation Stance: [label]** and carry it forward explicitly into Phase 2 and Phase 3.
-
----
-
 ### Phase 1 — Restate the core problem
 
 1. From the findings, derive a concise **Problem Statement** covering:
@@ -92,11 +61,6 @@ Record the derived stance as **Recommendation Stance: [label]** and carry it for
 ### Phase 2 — Generate solution options
 
 Generate between 2 and 4 distinct solution options by reasoning over the confirmed Problem Statement and the findings. Options must be meaningfully different directions — not variations of the same approach.
-
-**Stance-informed framing**: Option generation must be informed by the **Recommendation Stance** derived in Phase 0.5:
-- **Structural correctness first** → frame the structurally correct option as the baseline direction; the smaller-change option is the explicit trade-off alternative.
-- **Minimal disruption first** → frame the smallest safe change as the baseline; the structural option is the higher-cost alternative.
-- **Balanced** → present both directions as co-equal candidates.
 
 **Mandatory option types** (always include both, even if the option count is 2):
 - At least one option must represent the **smallest safe change** — the minimum intervention needed to address the problem without restructuring.
@@ -127,24 +91,33 @@ Effort is always relative — calibrate across the full set of options generated
 
 ### Phase 3 — Evaluate and recommend
 
-1. Review all options against the primary evaluation lens: **long-term maintainability and architectural correctness**, where "architectural correctness" is assessed against sound design principles — not merely against what the existing codebase does today. Conventions observed in the investigation report are evidence, not the standard.
+1. Before evaluating options, derive a **Debt Trajectory Assessment** from the investigation report findings. Do not ask the user — reason from the evidence already in the conversation:
+   - **Centrality**: Is the affected area a foundation other components depend on, or an isolated concern?
+   - **Coupling**: How tightly is this area coupled to the rest of the system? Would debt here constrain changes elsewhere?
+   - **Build surface**: Does the investigation suggest this area will be actively extended or built upon going forward?
 
-   Apply the **Recommendation Stance** from Phase 0.5 when weighing options:
-   - **Structural correctness first**: the structurally correct option is the default recommendation; departing from it requires an explicit, evidence-grounded justification.
-   - **Minimal disruption first**: the lowest-disruption option is the default recommendation; a structural option can only override it if its benefit is clear and immediately realisable.
-   - **Balanced**: weigh both lenses and call it based on the evidence.
+   State the assessment explicitly in one sentence before proceeding — e.g. *"This area is central to the payment flow, depended on by three other modules — debt here will compound."* or *"This is an isolated utility with no downstream dependents — debt here is low-risk to defer."*
 
-   **Debt deferral obligation**: If the recommended option is the conservative or smallest-change option, explicitly state (a) what technical debt it defers and (b) whether that debt is acceptable given the Recommendation Stance.
+   If the investigation report does not surface enough signal to assess these dimensions, say so explicitly rather than guessing.
 
-2. Select one **Recommended Option**. State it clearly with a short rationale (2–4 sentences) grounded in the evaluation lens.
+2. Review all options against the primary evaluation lens: **long-term maintainability and architectural correctness**, where "architectural correctness" is assessed against sound design principles — not merely against what the existing codebase does today. Conventions observed in the investigation report are evidence, not the standard.
 
-3. If a different option would be preferred under specific conditions, state that conditional preference explicitly alongside the main recommendation. Frame conditions neutrally — do not imply that structural options are inherently conditional or exceptional choices.
+   Weight the recommendation using the Debt Trajectory Assessment:
+   - **High compounding risk** (central, coupled, actively built on): the structurally correct option is the default; departing from it requires an explicit, evidence-grounded justification.
+   - **Low compounding risk** (isolated, low-touch, not a foundation for future work): the minimal-change option is defensible — but still state what debt it defers and why that is safe to carry.
+   - **Uncertain**: call it based on the available evidence and flag the uncertainty in the rationale.
+
+   **Debt deferral obligation**: If the recommended option is the conservative or smallest-change option, explicitly state (a) what technical debt it defers and (b) why that debt is acceptable given the Debt Trajectory Assessment.
+
+3. Select one **Recommended Option**. State it clearly with a short rationale (2–4 sentences) grounded in the evaluation lens and the Debt Trajectory Assessment.
+
+4. If a different option would be preferred under specific conditions, state that conditional preference explicitly alongside the main recommendation. Frame conditions neutrally — do not imply that structural options are inherently conditional or exceptional choices.
 
 ---
 
 ### Phase 4 — Produce the Decision Report
 
-Present the full Decision Report to the user. Ensure the rationale in the Recommended Option section explicitly references the **Recommendation Stance** derived in Phase 0.5.
+Present the full Decision Report to the user. Ensure the rationale in the Recommended Option section explicitly references the **Debt Trajectory Assessment** derived in Phase 3.
 
 ```markdown
 ## Decision Report — <one-line problem title>
@@ -180,7 +153,7 @@ Present the full Decision Report to the user. Ensure the rationale in the Recomm
 
 **Option {N}: <title>**
 
-<rationale — 2–4 sentences grounded in long-term maintainability, architectural correctness, and the Recommendation Stance>
+<rationale — 2–4 sentences grounded in long-term maintainability, architectural correctness, and the Debt Trajectory Assessment>
 
 **Conditional preference**: <if a different option would be better under specific conditions, state it here — or omit this line if no conditional preference applies>
 
