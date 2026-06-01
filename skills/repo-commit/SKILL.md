@@ -1,6 +1,6 @@
 ---
 name: repo-commit
-description: "Run tests, Commit and push changes to the current branch."
+description: "Run the test suite, then stage, commit, and push changes to the current branch with a conventional-commit message. Use when the user wants to commit, save, or push their work in an app/api/infra project repo — runs tests first and gates the push. For committing the plugin repo itself, use plugin-commit instead."
 ---
 
 ## Arguments

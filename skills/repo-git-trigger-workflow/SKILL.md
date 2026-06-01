@@ -1,5 +1,5 @@
 ---
-name: repo-trigger-workflow
+name: repo-git-trigger-workflow
 description: Trigger one or more GitHub Actions workflows via workflow_dispatch on a target repo. Resolves workflow shortnames (app, api, mcp, infra, all), auto-detects required inputs, and gates firing behind explicit confirmation.
 ---
 

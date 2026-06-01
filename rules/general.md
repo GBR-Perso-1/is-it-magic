@@ -9,7 +9,8 @@ Read `.claude/project-context.md` at session start — company, team size, user 
 
 ## Git
 
-- Conventional commits: `feat:`, `fix:`, `chore:`, `refactor:`
+- Prefer `/repo-commit` for commits — it runs tests, applies the conventional format, and gates the push
+- Conventional commits: `type(scope): description` (feat / fix / chore / refactor) — applies to direct commits too
 - Main: no PR needed — commits may span multiple concerns
 - Branch/PR: one feature or fix per branch
 - PR titles match commit convention
@@ -34,3 +35,16 @@ Never work around a missing tool with a global install or bare `npx` — add it 
 - No magic strings/numbers — use constants/enums
 - Prefer explicit over implicit
 - Single responsibility per class/component
+
+## Simplicity First
+
+- Minimum code that solves the problem — nothing speculative
+- No abstractions for single-use code; no "flexibility" or configurability that wasn't requested
+- No error handling for impossible scenarios
+- If it could be half the size, rewrite it — would a senior engineer call this overcomplicated?
+
+## Surgical Changes
+
+- Touch only what the task requires — don't "improve" adjacent code, comments, or formatting
+- Don't refactor what isn't broken; match existing style even if you'd do it differently
+- Remove only the orphans your own change created — never delete pre-existing dead code, mention it instead
