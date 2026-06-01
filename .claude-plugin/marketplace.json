@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "dev-workflow",
+      "name": "is-it-magic",
       "source": "./",
-      "description": "General AI development workflow — agents, orchestration skills, project init, and language rules.",
-      "version": "3.2.2"
+      "description": "GBR development workflow — agents, orchestration skills, project init, and language rules.",
+      "version": "1.0.0"
     }
   ]
 }
