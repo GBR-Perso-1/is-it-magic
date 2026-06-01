@@ -24,6 +24,7 @@ If `$ARGUMENTS` is empty: ask via `AskUserQuestion`:
 > "What would you like to distil into a skill?"
 >
 > Describe what you did — include:
+>
 > - The topic or problem you solved (this scopes what gets captured).
 > - Optionally, a phrase or message from the conversation where the relevant work began (e.g. "from when I started migrating the auth middleware"). If not provided, the full session is scanned.
 
@@ -85,11 +86,11 @@ This is the RAW_LIST.
 
 For each item in RAW_LIST, classify it against TOPIC:
 
-| Category | Definition |
-|---|---|
-| **In scope** | Clearly relevant to TOPIC — directly advances the stated task or solves the stated problem. |
+| Category         | Definition                                                                                                                                                                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **In scope**     | Clearly relevant to TOPIC — directly advances the stated task or solves the stated problem.                                                                                                                                                    |
 | **Out of scope** | Clearly irrelevant to TOPIC — exploratory detour, unrelated side task, or noise. Apply the same noise filter as `session-to-skill`: remove dead-end reads, failed commands immediately retried, duplicate steps, and unused diagnostic output. |
-| **Ambiguous** | Could plausibly be in or out of scope — threshold is qualitative. Flag these. |
+| **Ambiguous**    | Could plausibly be in or out of scope — threshold is qualitative. Flag these.                                                                                                                                                                  |
 
 Store as: IN_SCOPE_STEPS, OUT_OF_SCOPE_STEPS, AMBIGUOUS_STEPS.
 
@@ -106,10 +107,11 @@ If AMBIGUOUS_STEPS is non-empty: present them to the user via a single `AskUserQ
 > How would you like to handle these?
 
 Options:
-1. Include all ambiguous steps *(add to in-scope)*
-2. Exclude all ambiguous steps *(add to out-of-scope)*
+
+1. Include all ambiguous steps _(add to in-scope)_
+2. Exclude all ambiguous steps _(add to out-of-scope)_
 3. Decide step by step
-4. Other *(describe changes)*
+4. Other _(describe changes)_
 
 - **Option 1**: move all AMBIGUOUS_STEPS into IN_SCOPE_STEPS. Proceed to Phase 3.
 - **Option 2**: move all AMBIGUOUS_STEPS into OUT_OF_SCOPE_STEPS. Proceed to Phase 3.
@@ -139,6 +141,7 @@ Store as SKILL_NAME.
 Walk FILTERED_STEPS. For every value specific to the current project (file paths, component names, module names, configuration keys, package names, environment names, class names), replace it with a `{{PLACEHOLDER_NAME}}` token using UPPER_SNAKE_CASE inside `{{ }}`.
 
 Common examples:
+
 - File or directory paths: `{{TARGET_FILE}}`, `{{SOURCE_DIR}}`
 - Module or component names: `{{MODULE_NAME}}`, `{{COMPONENT_NAME}}`
 - Package or dependency names: `{{PACKAGE_NAME}}`, `{{PACKAGE_VERSION}}`
@@ -151,16 +154,16 @@ Produce a PLACEHOLDER_LIST (each entry: token name + brief description).
 
 **Probe plugin repos.** Check which of the following directories exist on disk:
 
-| Label | Path |
-|---|---|
-| `platform` | `C:\Workspace\Dev\Perso.Applications\claude-platform-plugin` |
-| `dev-workflow` | `C:\Workspace\Dev\Perso.Applications\claude-dev-workflow-plugin` |
-| `rise` | `C:\Workspace\Dev\Rise.Applications\it--claude-rise-plugin` |
+| Label         | Path                                                         |
+| ------------- | ------------------------------------------------------------ |
+| `platform`    | `C:\Workspace\Dev\Perso.Applications\claude-platform-plugin` |
+| `is-it-magic` | `C:\Workspace\Dev\Perso.Applications\is-it-magic`            |
+| `rise`        | `C:\Workspace\Dev\Rise.Applications\it--claude-rise-plugin`  |
 
 Build the list of available destinations from those confirmed to exist. Always append:
 
-| Label | Path |
-|---|---|
+| Label     | Path                   |
+| --------- | ---------------------- |
 | `project` | `<cwd>/.claude/skills` |
 
 **Question A — Destination** (`AskUserQuestion`):
@@ -174,12 +177,14 @@ Build the list of available destinations from those confirmed to exist. Always a
 > "Confirm or override the skill name."
 >
 > Options:
->   1. Keep `<SKILL_NAME>` (Recommended)
->   2. Use a different name (type via Other)
+>
+> 1. Keep `<SKILL_NAME>` (Recommended)
+> 2. Use a different name (type via Other)
 
 Update SKILL_NAME if overridden. Set SKILL_DEST to the `skills/` path for the chosen destination.
 
 Output path:
+
 - Plugin destination: `<SKILL_DEST>/<SKILL_NAME>/SKILL.md`
 - Project destination: `<cwd>/.claude/skills/<SKILL_NAME>/SKILL.md`
 
@@ -251,7 +256,8 @@ Ask via `AskUserQuestion`:
 > "Would you like to adjust anything in the generated skill?"
 
 Options:
-1. No — skill is good as written *(Recommended)*
+
+1. No — skill is good as written _(Recommended)_
 2. Yes — I'll describe what to change
 
 If option 2: wait for description, apply edits, re-print the Report block with a summary of changes, then re-present the same question.
@@ -264,39 +270,40 @@ Skip entirely if the user chose `project` in Step 3.3.
 
 PLUGIN_REPO_ROOT reference:
 
-| Destination | PLUGIN_REPO_ROOT |
-|---|---|
-| `platform` | `C:\Workspace\Dev\Perso.Applications\claude-platform-plugin` |
-| `dev-workflow` | `C:\Workspace\Dev\Perso.Applications\claude-dev-workflow-plugin` |
-| `rise` | `C:\Workspace\Dev\Rise.Applications\it--claude-rise-plugin` |
+| Destination   | PLUGIN_REPO_ROOT                                             |
+| ------------- | ------------------------------------------------------------ |
+| `platform`    | `C:\Workspace\Dev\Perso.Applications\claude-platform-plugin` |
+| `is-it-magic` | `C:\Workspace\Dev\Perso.Applications\is-it-magic`            |
+| `rise`        | `C:\Workspace\Dev\Rise.Applications\it--claude-rise-plugin`  |
 
 Ask via `AskUserQuestion`:
 
 > "Do you want to commit and push this skill to the plugin repo now?"
 
 Options:
-1. Yes — commit and push *(Recommended)*
+
+1. Yes — commit and push _(Recommended)_
 2. No — I'll commit manually later
 
 If **No**:
 
 ```
 Skill saved. When ready to commit, run:
-  /dev-workflow:plugin-commit <actual PLUGIN_REPO_ROOT value>
+  /is-it-magic:plugin-commit <actual PLUGIN_REPO_ROOT value>
 ```
 
 Then stop.
 
-If **Yes**: check whether `C:\Workspace\Dev\Perso.Applications\claude-dev-workflow-plugin` exists on disk. If not:
+If **Yes**: check whether `C:\Workspace\Dev\Perso.Applications\is-it-magic` exists on disk. If not:
 
 ```
-The dev-workflow plugin repo was not found on disk. Install it to enable auto-commit:
+The is-it-magic plugin repo was not found on disk. Install it to enable auto-commit:
 
-  claude plugin install dev-workflow
+  claude plugin install is-it-magic
 
-Then run manually: /dev-workflow:plugin-commit <actual PLUGIN_REPO_ROOT value>
+Then run manually: /is-it-magic:plugin-commit <actual PLUGIN_REPO_ROOT value>
 ```
 
 Then stop.
 
-If available: invoke `/dev-workflow:plugin-commit <PLUGIN_REPO_ROOT>`.
+If available: invoke `/is-it-magic:plugin-commit <PLUGIN_REPO_ROOT>`.
