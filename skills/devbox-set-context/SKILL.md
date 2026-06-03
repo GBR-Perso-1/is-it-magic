@@ -3,7 +3,7 @@ name: devbox-set-context
 description: "Manage the user-level contexts.json manifest — create, validate, sync, and add context entries that describe your GitHub/Azure accounts."
 ---
 
-Manage the user-level `contexts.json` manifest at `%USERPROFILE%\.claude\contexts.json` (Windows) / `$HOME/.claude/contexts.json` (Unix). The manifest declares every GitHub/Azure context you operate in; skills across the plugin ecosystem read it to resolve accounts, SSH aliases, Azure tenant IDs, and dev-settings sources without prompting.
+Manage the user-level `contexts.json` manifest at `%USERPROFILE%\.claude\contexts.json` (Windows) / `$HOME/.claude/contexts.json` (Unix). The manifest declares every GitHub/Azure context you operate in; skills across the plugin ecosystem read it to resolve accounts, SSH aliases, and Azure tenant IDs without prompting.
 
 ## Important rules
 
@@ -83,9 +83,6 @@ For each new context, collect fields via `AskUserQuestion` one at a time. Every 
 | `azure_tenant_id`       | Azure / Entra tenant GUID                                                                    |
 | `azure_subscriptions`   | Environment → subscription GUID pairs (accept as `qa=<guid>,prod=<guid>`)                    |
 | `azure_env_file_prefix` | Prefix for local Azure env files (e.g. `rise-env`)                                           |
-| `dev_settings_repo`     | Dev-settings repository name (e.g. `it--dev-settings`)                                       |
-| `dev_settings_owner`    | Owner of the dev-settings repo                                                               |
-| `dev_settings_admin`    | Name of the platform admin                                                                   |
 | `ado_org_url`           | Azure DevOps organisation URL                                                                |
 | `app_template_path`     | Absolute path to the local app template clone                                                |
 

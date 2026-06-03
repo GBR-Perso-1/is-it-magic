@@ -89,7 +89,7 @@ For each item in RAW_LIST, classify it against TOPIC:
 | Category         | Definition                                                                                                                                                                                                                                     |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **In scope**     | Clearly relevant to TOPIC — directly advances the stated task or solves the stated problem.                                                                                                                                                    |
-| **Out of scope** | Clearly irrelevant to TOPIC — exploratory detour, unrelated side task, or noise. Apply the same noise filter as `session-to-skill`: remove dead-end reads, failed commands immediately retried, duplicate steps, and unused diagnostic output. |
+| **Out of scope** | Clearly irrelevant to TOPIC — exploratory detour, unrelated side task, or noise. Apply the noise filter: remove dead-end reads, failed commands immediately retried, duplicate steps, and unused diagnostic output. |
 | **Ambiguous**    | Could plausibly be in or out of scope — threshold is qualitative. Flag these.                                                                                                                                                                  |
 
 Store as: IN_SCOPE_STEPS, OUT_OF_SCOPE_STEPS, AMBIGUOUS_STEPS.
@@ -152,15 +152,9 @@ Produce a PLACEHOLDER_LIST (each entry: token name + brief description).
 
 #### Step 3.3 — Resolve destination
 
-**Probe plugin repos.** Check which of the following directories exist on disk:
+**Discover plugin repos.** From the current working directory, walk up to the workspace root (the parent containing one or more `<Scope>.Applications/` folders). Within each `<Scope>.Applications/` folder, find immediate subdirectories that contain a `.claude-plugin/plugin.json` — each is a candidate plugin-repo destination, labelled by its directory name. Record each label with its absolute path as `PLUGIN_DESTINATIONS`.
 
-| Label         | Path                                                         |
-| ------------- | ------------------------------------------------------------ |
-| `platform`    | `C:\Workspace\Dev\Perso.Applications\claude-platform-plugin` |
-| `is-it-magic` | `C:\Workspace\Dev\Perso.Applications\is-it-magic`            |
-| `rise`        | `C:\Workspace\Dev\Rise.Applications\it--claude-rise-plugin`  |
-
-Build the list of available destinations from those confirmed to exist. Always append:
+Build the list of available destinations from those discovered. Always append the current project:
 
 | Label     | Path                   |
 | --------- | ---------------------- |
@@ -268,13 +262,7 @@ If option 2: wait for description, apply edits, re-print the Report block with a
 
 Skip entirely if the user chose `project` in Step 3.3.
 
-PLUGIN_REPO_ROOT reference:
-
-| Destination   | PLUGIN_REPO_ROOT                                             |
-| ------------- | ------------------------------------------------------------ |
-| `platform`    | `C:\Workspace\Dev\Perso.Applications\claude-platform-plugin` |
-| `is-it-magic` | `C:\Workspace\Dev\Perso.Applications\is-it-magic`            |
-| `rise`        | `C:\Workspace\Dev\Rise.Applications\it--claude-rise-plugin`  |
+Set `PLUGIN_REPO_ROOT` to the absolute path of the destination chosen in Step 3.3 (from `PLUGIN_DESTINATIONS`) — i.e. the plugin-repo root that contains the `skills/` folder the skill was written into.
 
 Ask via `AskUserQuestion`:
 

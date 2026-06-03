@@ -12,7 +12,7 @@ paths:
 - Return ActionResult<T> with proper HTTP status codes
 - Use [ApiController] attribute
 
-## CQRS with MediatR
+## CQRS with Mediator
 
 - Commands mutate state, return created/updated entity ID
 - Queries are read-only, return DTOs (never entities)
@@ -71,5 +71,5 @@ paths:
   1. The feature involves a polymorphic hierarchy where each subtype declares its own fields (no shared base-class projection is possible)
   2. Domain formulas (price, allocation, derived values) would require duplication across every subtype's projection branch
   3. The result set is bounded and small (≤ ~50 rows — pagination or fixed aggregate)
-  In this case: `.AsNoTracking().ToListAsync()` to materialise entities, then map to DTOs in-memory. Document the deviation with a `// NOTE: load-then-map — EF expression tree constraint` comment on the handler.
+     In this case: `.AsNoTracking().ToListAsync()` to materialise entities, then map to DTOs in-memory. Document the deviation with a `// NOTE: load-then-map — EF expression tree constraint` comment on the handler.
 - Both list and single-item handlers share the same projection extension (or the same in-memory mapper if the exception applies)

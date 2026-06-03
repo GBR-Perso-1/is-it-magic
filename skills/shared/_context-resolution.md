@@ -1,7 +1,5 @@
 ## Context Resolution Contract
 
-> **Maintenance note**: This file is a copy. **Source of truth**: `claude-platform-plugin/skills/shared/_context-resolution.md`. Keep in sync when the source changes.
-
 Every skill that needs to identify the active GitHub/Azure context must follow this contract in order, without deviation.
 
 ---
@@ -20,8 +18,7 @@ If the skill received an explicit context argument (e.g. a context name like `ri
 
 Read the manifest from:
 
-- **Windows**: `%USERPROFILE%\.claude\contexts.json`
-- **Unix / macOS**: `$HOME/.claude/contexts.json`
+`%USERPROFILE%\.claude\contexts.json`
 
 If the manifest is missing or unreadable, skip to R.4.
 
@@ -53,6 +50,7 @@ Which context should be used?
 ```
 
 Options:
+
 1. Use manifest context `<context-name>` (owner: `<manifest-owner>`)
 2. Resolve by remote owner (`<remote-owner>`) — look up matching context or enter inline
 3. Cancel
@@ -85,6 +83,7 @@ Save this as the context for paths matching <cwd-pattern> in your manifest?
 ```
 
 Options:
+
 1. Yes — save to manifest (Recommended)
 2. No — use for this run only
 

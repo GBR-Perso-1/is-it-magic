@@ -1,6 +1,6 @@
 ---
 name: azure-investigator
-description: Read-only Azure investigation agent that detects whether the platform plugin's az-query skill is installed and uses it if available, falling back to direct az CLI. Produces a structured Azure Findings Report.
+description: Read-only Azure investigation agent that uses the bundled az-query skill (auth flow, naming conventions, query patterns) when available, falling back to direct az CLI otherwise. Produces a structured Azure Findings Report.
 tools: Bash, Glob, Read
 model: sonnet
 color: cyan
@@ -21,56 +21,35 @@ color: cyan
 
 This phase runs when the agent is first spawned. Run the detection flow and auth check, then STOP and return findings to the orchestrating skill. Do NOT proceed to investigate.
 
-### Step 1 — Detect platform plugin and az-query skill
+### Step 1 — Locate the bundled az-query skill
 
-Run the following detection script:
+The `az-query` skill and its `_az-auth.md` shared doc ship inside this plugin. Resolve them relative to the plugin root:
 
 ```bash
-# Resolve platform plugin install path from the installed_plugins manifest
-PLUGINS_MANIFEST="$USERPROFILE/.claude/plugins/installed_plugins.json"
-PLATFORM_INSTALL_PATH=""
-
-if [ -f "$PLUGINS_MANIFEST" ]; then
-  PLATFORM_INSTALL_PATH=$(python3 -c "
-import json, sys
-try:
-    data = json.load(open('$PLUGINS_MANIFEST'))
-    plugins = data.get('plugins', {})
-    for key, entries in plugins.items():
-        if key.startswith('platform@') and entries:
-            print(entries[0]['installPath'].replace('\\\\', '/'))
-            break
-except Exception:
-    pass
-" 2>/dev/null)
-fi
-
 AZ_QUERY_SKILL=""
 AZ_AUTH_DOC=""
-if [ -n "$PLATFORM_INSTALL_PATH" ]; then
-  SKILL_CANDIDATE="$PLATFORM_INSTALL_PATH/skills/az-query/SKILL.md"
-  AUTH_CANDIDATE="$PLATFORM_INSTALL_PATH/skills/shared/_az-auth.md"
-  if [ -f "$SKILL_CANDIDATE" ] && [ -f "$AUTH_CANDIDATE" ]; then
-    AZ_QUERY_SKILL="$SKILL_CANDIDATE"
-    AZ_AUTH_DOC="$AUTH_CANDIDATE"
-  fi
+SKILL_CANDIDATE="$CLAUDE_PLUGIN_ROOT/skills/az-query/SKILL.md"
+AUTH_CANDIDATE="$CLAUDE_PLUGIN_ROOT/skills/shared/_az-auth.md"
+if [ -f "$SKILL_CANDIDATE" ] && [ -f "$AUTH_CANDIDATE" ]; then
+  AZ_QUERY_SKILL="$SKILL_CANDIDATE"
+  AZ_AUTH_DOC="$AUTH_CANDIDATE"
 fi
 ```
 
-### Step 2 — Branch A: platform plugin found
+### Step 2 — Branch A: az-query skill found
 
 If `$AZ_QUERY_SKILL` and `$AZ_AUTH_DOC` are non-empty:
 
-- Announce: `Using az-query interface from platform plugin at: <path>`
+- Announce: `Using the bundled az-query interface at: <path>`
 - Read `$AZ_AUTH_DOC` in full and follow its auth flow (session check → env file discovery → login if needed).
 - Surface the active Azure context (tenant, subscription, user) verbatim.
 - **STOP — return this output to the orchestrating skill. Do not investigate yet.**
 
-### Step 3 — Branch B: platform plugin not found
+### Step 3 — Branch B: az-query skill not found
 
-If `$AZ_QUERY_SKILL` is empty:
+If `$AZ_QUERY_SKILL` is empty (the plugin files could not be resolved):
 
-- Announce: `Platform plugin not installed — using direct az CLI (fallback mode)`
+- Announce: `az-query skill not found — using direct az CLI (fallback mode)`
 - Run:
   ```bash
   az account show --query "{name:name, tenantId:tenantId, subscriptionId:id, user:user.name}" -o json 2>/dev/null
@@ -85,9 +64,9 @@ If `$AZ_QUERY_SKILL` is empty:
 
 This phase runs only when the orchestrating skill sends a `SendMessage` after confirming the Azure context is correct. The message will contain the confirmed context and the investigation brief.
 
-### Branch A: platform plugin available
+### Branch A: az-query skill available
 
-Re-read the full `$AZ_QUERY_SKILL` and `$AZ_AUTH_DOC` files (re-resolve their paths from the detection script in Phase 0 if the variables were not retained). Follow the az-query patterns exactly:
+Re-read the full `$AZ_QUERY_SKILL` and `$AZ_AUTH_DOC` files (re-resolve their paths from Step 1 in Phase 0 if the variables were not retained). Follow the az-query patterns exactly:
 
 - Naming convention lookup
 - Resource type parsing
@@ -114,7 +93,7 @@ Produce this report at the end of Phase 1 (both branches):
 
 ```markdown
 ### Active Azure Context
-Mode: [az-query (platform plugin) | direct az CLI (fallback)]
+Mode: [az-query (bundled) | direct az CLI (fallback)]
 Tenant: <tenantId>
 Subscription: <name> (<subscriptionId>)
 User: <user>

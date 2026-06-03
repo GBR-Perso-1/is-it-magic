@@ -11,7 +11,7 @@ Analyse the changes in this plugin repo, determine the correct semantic version 
 
 ## Arguments
 
-`$ARGUMENTS` is optional. If provided, treat it as the absolute path to the plugin repo root (e.g. `C:\Workspace\Dev\Perso.Applications\claude-platform-plugin`). If absent, use the current working directory as the repo root.
+`$ARGUMENTS` is optional. If provided, treat it as the absolute path to the plugin repo root (e.g. `C:\Workspace\Dev\Perso.Applications\is-it-magic`). If absent, use the current working directory as the repo root.
 
 Store the resolved path as REPO_ROOT.
 
@@ -75,7 +75,7 @@ Options:
 
 If the user picks an override, recompute the new version accordingly.
 
-#### 5. Update version in both manifest files
+#### 5. Update the plugin manifest version
 
 Edit in place:
 - `<REPO_ROOT>/.claude-plugin/plugin.json` — `version` field
@@ -83,7 +83,7 @@ Edit in place:
 #### 6. Commit
 
 ```bash
-git -C "<REPO_ROOT>" add -- .claude-plugin/ skills/ agents/ rules/ hooks/ templates/
+git -C "<REPO_ROOT>" add -- .claude-plugin/ skills/ agents/ rules/ templates/
 git -C "<REPO_ROOT>" commit -m "<user commit message>
 
 chore: bump version to <new-version>"

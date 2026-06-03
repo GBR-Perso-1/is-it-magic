@@ -152,8 +152,6 @@ Assemble `STACK_HINT` as a comma-separated string (e.g. `dotnet,vue`).
 
 ## Phase 1 — Parallel scan
 
-> Note: agent files live in `${CLAUDE_PLUGIN_ROOT}/agents/`. If the plugin runtime does not auto-discover this directory, move agent files to `skills/security-scan/agents/` and update names accordingly.
-
 Spawn all three scanner agents in parallel, passing `SCAN_ROOT`, `SCAN_DEPTH`, and `STACK_HINT`:
 
 - `scanner-secrets`

@@ -43,9 +43,6 @@ The `contexts` array is ordered. The first entry whose `path_globs` matches the 
 | `azure_tenant_id` | string | No | Azure / Entra tenant GUID for this context. |
 | `azure_subscriptions` | object | No | Map of environment name → Azure subscription GUID (e.g. `{ "qa": "<guid>", "prod": "<guid>" }`). |
 | `azure_env_file_prefix` | string | No | Prefix for local Azure env files (e.g. `rise-env`). Used by Terraform auth skills. |
-| `dev_settings_repo` | string | No | Repository name of the private dev-settings source (e.g. `it--dev-settings`). |
-| `dev_settings_owner` | string | No | GitHub owner of the dev-settings repo (org or user slug). Combined with `dev_settings_repo` to form `<owner>/<repo>`. |
-| `dev_settings_admin` | string | No | Display name of the person who administers the dev-settings repo. Used in instructions to developers. |
 | `ado_org_url` | string | No | Azure DevOps organisation URL (e.g. `https://dev.azure.com/Mantu`). Presence (combined with absence of `github_org`/`github_user`) signals ADO-backed context. |
 | `app_template_path` | string | No | Absolute path to the local clone of the application template repo (e.g. `C:\Workspace\Dev\Rise.Applications\it--app-template`). |
 
@@ -108,9 +105,6 @@ Each context's `azure_subscriptions` map contains only the subscriptions within 
         "qa": "<qa-subscription-guid>"
       },
       "azure_env_file_prefix": "rise-env",
-      "dev_settings_repo": "it--dev-settings",
-      "dev_settings_owner": "Rise-4",
-      "dev_settings_admin": "<admin-display-name>",
       "app_template_path": "C:/Workspace/Dev/Rise.Applications/it--app-template"
     },
     {
@@ -124,9 +118,6 @@ Each context's `azure_subscriptions` map contains only the subscriptions within 
         "prod": "<prod-subscription-guid>"
       },
       "azure_env_file_prefix": "rise-env",
-      "dev_settings_repo": "it--dev-settings",
-      "dev_settings_owner": "Rise-4",
-      "dev_settings_admin": "<admin-display-name>",
       "app_template_path": "C:/Workspace/Dev/Rise.Applications/it--app-template"
     },
     {

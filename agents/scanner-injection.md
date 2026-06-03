@@ -35,7 +35,7 @@ Run `git ls-files` inside `SCAN_ROOT`. Fall back to Glob (exclude `node_modules`
 
 **Surface mode file targets**: `**/Controllers/**`, `**/controller*`, `**/Handlers/**`, `**/handler*`, `**/routes/**`, `**/route*`, `**/*Repository*`, `**/*Dao*`, `**/*DbContext*`, `**/*Query*`
 
-**Deep mode file targets** (REQ-2.3 — extended scope): all of the above plus `**/Middleware/**`, `**/middleware*`, `**/Utils/**`, `**/Helpers/**`, `**/Services/**`, `**/service*`, `**/shared/**`
+**Deep mode file targets**: all of the above plus `**/Middleware/**`, `**/middleware*`, `**/Utils/**`, `**/Helpers/**`, `**/Services/**`, `**/service*`, `**/shared/**`
 
 ## Phase 2 — Pattern scanning
 

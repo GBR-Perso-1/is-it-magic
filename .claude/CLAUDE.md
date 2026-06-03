@@ -1,22 +1,23 @@
 # Dev Workflow — Claude Code Plugin
 
-This repository is a general-purpose Claude Code plugin providing AI-assisted development workflow — agents, orchestration skills, project init, and language rules.
+This repository is a general-purpose Claude Code plugin providing AI-assisted development workflow — agents, orchestration skills, machine setup, and language rules.
+
+## Plugin model
+
+This is the **base** plugin in the layered model — broad, general-purpose, installed user-level. Specialized (company/stack-scoped) plugins layer on top per-project. For the full model and the litmus test on where any skill/agent/rule belongs, see @../docs/plugin-model.md.
 
 ## Plugin Structure
 
-- `skills/` — skills as `<name>/SKILL.md` + shared architecture docs in `skills/shared/`
-- `agents/` — agent definitions (architect, developer, need analyst, tester, quality reviewers)
-- `rules/` — rule files (copied to projects by `/project-init`, then auto-loaded natively by Claude Code)
-- `hooks/` — `hooks.json` + `log-instructions-loaded.sh`
-- `templates/` — `project-context.md` template (copied to projects by `/project-init`)
+- `skills/` — 18 skills as `<name>/SKILL.md` + shared architecture docs in `skills/shared/`
+- `agents/` — 16 agent definitions (implementation pipeline, investigation, security scanners, plugin dev)
+- `rules/` — 6 rule files (synced to `~/.claude/rules/` by `/devbox-init`, then auto-loaded natively by Claude Code)
 - `.claude-plugin/plugin.json` — plugin manifest
 
 ## How It Works
 
-1. Install the plugin (user-level or project-level).
-2. Skills and agents become available as slash commands (`/project-session`, `/project-init`, etc.).
-3. Rules are copied to projects by `/project-init` (into `.claude/rules/`), where Claude Code auto-loads them natively based on `paths:` frontmatter. Run `/project-init` again to refresh rules after updating them here.
-4. The `InstructionsLoaded` hook logs which instruction files are loaded to `.claude/instructions-loaded.log`.
+1. Install the plugin (user-level).
+2. Run `/devbox-init` once on this machine to sync all plugin rules into `~/.claude/rules/` and enable favoured language LSPs in `~/.claude/settings.json`. Rules load globally in every session. Re-run after plugin updates to refresh.
+3. Skills become available as slash commands (`/devbox-init`, `/project-implement`, etc.); agents are spawned by skills or invoked directly.
 
 ## Development
 

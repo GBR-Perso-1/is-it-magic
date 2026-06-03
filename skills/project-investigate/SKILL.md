@@ -1,7 +1,7 @@
 ---
 name: project-investigate
 description: >
-  Investigate a codebase or system. Three modes, chosen interactively:
+  Investigate a codebase or system or an idea. Three modes, chosen interactively:
   no args = ask for a question or offer full repository archaeology;
   Bug hunt = locate root cause of a defect, report only;
   Analytical = explore patterns, tradeoffs, or design.
