@@ -48,8 +48,31 @@ specific company workflow, or specific tooling belongs in rise-dev-plugin.
   rise-dev-plugin currently has NO `rules/` directory — the ported company content will seed it.
 
 ## What I want to work on now (new session)
-<FILL IN — e.g. "genericise general.md and split company bits into rise-dev-plugin's rules/",
-or "port the .NET/Node/infra language rules", or "the devbox-init skill", etc.>
+The **rules** phase is done (generic rules kept/genericised in base; company/stack bits moved to
+rise or flagged). Now: **rewrite the skills and agents from `.backup-skills/` into the live plugin,
+one by one**, applying the base-vs-specialized split — see "Mode of work" below and the plan of
+record at `docs/skills-agents-triage.md`.
+
+## Mode of work — rewriting skills & agents from a frozen backup (current phase)
+
+A **backup-as-source** workflow:
+
+- `.backup-skills/{agents,skills}/` holds a frozen copy of every original agent and skill (plus the
+  full `skills/shared/` set, including the `_api-archi-extended.md` / `_app-archi-extended.md`
+  holding files). **This is read-only reference — never modify anything under `.backup-skills/`.**
+  It is the source of truth for what each artefact originally did.
+- The live `agents/` and `skills/` trees were emptied (only `skills/shared/_ux-rules.md` kept).
+  We **rewrite each artefact from its backup into the live tree, one by one**, applying the
+  base-vs-specialized split: generic artefacts are rebuilt lean in the base; company/stack-specific
+  ones are rebuilt into the rise/specialized plugin instead.
+- **The user guides the process and decides each artefact's fate** (rewrite-in-base / split /
+  move-to-specialized / drop). Claude reads the backup and proposes; the user decides. Never edit
+  the backup.
+- Plan of record: `docs/skills-agents-triage.md` (full classification + the 3 decision clusters).
+  Litmus: `docs/plugin-model.md`.
+
+> Housekeeping: `.backup-skills/` is currently untracked and **not** gitignored — decide whether it
+> should be gitignored (treat as scratch reference) or committed (kept in history) before the next commit.
 
 ## How to work
 Use the is-it-magic workflow skills as appropriate:

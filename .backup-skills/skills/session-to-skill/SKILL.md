@@ -5,7 +5,7 @@ description: "Retroactively distil a completed piece of work from the current se
 
 ## Important rules
 
-Read and follow the rules in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_ux-rules.md`.
+Read and follow the rules in `../shared/_ux-rules.md`.
 
 ## Arguments
 
@@ -152,7 +152,7 @@ Produce a PLACEHOLDER_LIST (each entry: token name + brief description).
 
 #### Step 3.3 — Resolve destination
 
-**Discover plugin repos.** Follow the Workspace Discovery Contract in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_workspace-discovery.md` with MARKER = `.claude-plugin/plugin.json`. Each returned candidate is a plugin-repo destination, labelled by its directory name. Record as `PLUGIN_DESTINATIONS`.
+**Discover plugin repos.** From the current working directory, walk up to the workspace root (the parent containing one or more `<Scope>.Applications/` folders). Within each `<Scope>.Applications/` folder, find immediate subdirectories that contain a `.claude-plugin/plugin.json` — each is a candidate plugin-repo destination, labelled by its directory name. Record each label with its absolute path as `PLUGIN_DESTINATIONS`.
 
 Build the list of available destinations from those discovered. Always append the current project:
 
@@ -282,4 +282,16 @@ Skill saved. When ready to commit, run:
 
 Then stop.
 
-If **Yes**: invoke `/is-it-magic:plugin-commit <PLUGIN_REPO_ROOT>`. (This skill ships in the `is-it-magic` plugin, so its sibling `plugin-commit` skill is always available.)
+If **Yes**: check whether `C:\Workspace\Dev\Perso.Applications\is-it-magic` exists on disk. If not:
+
+```
+The is-it-magic plugin repo was not found on disk. Install it to enable auto-commit:
+
+  claude plugin install is-it-magic
+
+Then run manually: /is-it-magic:plugin-commit <actual PLUGIN_REPO_ROOT value>
+```
+
+Then stop.
+
+If available: invoke `/is-it-magic:plugin-commit <PLUGIN_REPO_ROOT>`.
