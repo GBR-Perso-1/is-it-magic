@@ -80,7 +80,7 @@ ls "$PLUGIN_RULES_DIR"*.md
 Get-ChildItem -Path "$PLUGIN_RULES_DIR" -Filter "*.md"
 ```
 
-Expected files include (e.g.) `general.md`, `api-lang.md`, `app-lang.md`, `infra-lang.md`, `infra-naming.md`, `python-lang.md` — but the actual set is whatever `.md` files are present in `PLUGIN_RULES_DIR` at runtime. The glob commands above are the authoritative enumeration; the list here is illustrative only.
+Expected files include (e.g.) `general.md`, `csharp-lang.md`, `typescript-lang.md`, `infra-lang.md`, `infra-naming.md`, `python-lang.md` — but the actual set is whatever `.md` files are present in `PLUGIN_RULES_DIR` at runtime. The glob commands above are the authoritative enumeration; the list here is illustrative only.
 
 Store the result as `FILES_FOUND`.
 
@@ -209,7 +209,7 @@ Rules synced to <TARGET_DIR> (<count of FILES_WRITTEN>):
   … (one line per file in FILES_WRITTEN)
 
 Rules now load globally in every Claude Code session on this machine.
-Language-specific rules (api-lang, app-lang, etc.) stay dormant until
+Language-specific rules (csharp-lang, typescript-lang, etc.) stay dormant until
 files matching their paths: frontmatter appear in the active project.
 ──────────────────────────────────────────────
 LSP enablement (<SETTINGS_FILE>):

@@ -17,7 +17,7 @@ My broad, general-purpose toolkit — the way I work regardless of stack, compan
 
 - Installed **user-level (`~/.claude`)** — present in every session, on every project.
 - The foundation everything else builds on.
-- Stays **clean and universal**: nothing here may assume a particular company, tenant, repo, or tech stack.
+- Stays **clean and universal**: nothing here may assume a particular company, tenant, repo, or tech stack (generic, portable tool preferences are fine — see the litmus test).
 
 ## Specialized plugins (layered on top of the base)
 
@@ -37,7 +37,11 @@ A specialized plugin is **not necessarily tied to a company** — its identity i
 > **How I work, everywhere → base (`is-it-magic`).**
 > **Specific to a company, a stack, or a philosophy → that specialized plugin.**
 
-If a skill/agent/rule assumes a particular org, tenant, repo, naming convention, or tech stack, it belongs in a specialized plugin — not the base.
+If a skill/agent/rule assumes a particular org, tenant, repo, company/ecosystem-specific name (a product, resource, or prefix *value*), or an assembled-for-a-purpose tech stack (code stack + repo layout), it belongs in a specialized plugin — not the base.
+
+**Tooling nuance.** A rule may be *about* a specific tool (Terraform, Docker, a test runner) and still belong in the base — provided it only encodes a generic, portable *preference* for using that tool (style, naming discipline, structure) and carries **no** ecosystem specifics: no company product/resource names, no org module layouts. (Provider-specific conventions are governed separately — see *Cloud substrate* below.) The tool being named doesn't make a rule specialized; *ecosystem-specific usage* does. These rules are `paths:`-scoped so they only load inside that tool's files. The moment a rule names a tenant, company resource, or org convention, it moves to the specialized plugin.
+
+**Cloud substrate.** A single cloud provider you deploy to on *every* project is part of your universal substrate, not a per-project choice — so provider-specific conventions (e.g. an Azure resource-naming scheme) may live in the base, provided they are **parameterised, not hardcoded**: the *scheme* is generic, while company/project-specific values (prefixes, product names, resource names) are resolved per-project (e.g. from `project-context.md`) or live in the specialized plugin. This carve-out is deliberately narrow — it covers the one cloud you universally target, *not* code stacks (.NET/Node) or repo layouts (`api/app`), which genuinely vary per project and stay in specialized plugins.
 
 ## Cross-plugin note
 

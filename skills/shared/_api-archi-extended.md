@@ -1,0 +1,63 @@
+---
+paths:
+  - "api/**"
+---
+
+# API Architecture Rules — Extended (pending merge into `_api-archi.md`)
+
+> **Holding file.** Extracted from `rules/csharp-lang.md` (formerly `api-lang.md`) when that rule was
+> trimmed to language-only concerns. Merge into `_api-archi.md`, rewire the consumers
+> (`project-implement` / `architect` / `developer` to load the archi doc), then delete this file.
+
+## Controllers
+
+- Return ActionResult<T> with proper HTTP status codes
+- Use [ApiController] attribute
+
+## CQRS with Mediator
+
+- Commands mutate state, return created/updated entity ID
+- Queries are read-only, return DTOs (never entities)
+- FluentValidation validator per command for input validation
+
+## Entity Framework
+
+- DbContext in Infrastructure layer
+- EntityTypeConfiguration per entity (no data annotations on domain)
+- Migrations via `dotnet ef migrations add {Name}`
+- SQL script generation: use skill `/repo-ef-sql`
+- Always seed lookup/reference data in configurations
+- Centralized NuGet versions via `Directory.Packages.props`
+
+## DTOs
+
+- Request DTOs: match command properties
+- Response DTOs: flat, no nested entities unless necessary
+
+## Error Handling
+
+- Domain exceptions for business rule violations
+- Middleware catches and maps to ProblemDetails
+- Never expose stack traces in responses
+
+## Controller & Data-Access Conventions (extracted from C# Style)
+
+- `ProducesResponseType` attributes on all controller actions
+- Bulk deletes: `.Where(...).ExecuteDeleteAsync(cancellationToken)` — never load entities to delete them
+
+## Safety
+
+- Never generate OpenAPI specs — these are managed at build time
+- Ask before modifying Program.cs, any migration, or any Domain entity
+- Never rename public API routes without flagging it
+
+## Query Projections
+
+- When a query returns a DTO needing related data, add navigation properties and create `{Feature}QueryExtensions.cs` in `Features/{Feature}/Extensions/`
+- Define `ProjectToDto()` extension on `IQueryable<TEntity>` that projects to DTO inside `Select()` — single SQL query, no in-memory transformation
+- **Exception — load-then-map:** Permitted when ALL of the following hold:
+  1. The feature involves a polymorphic hierarchy where each subtype declares its own fields (no shared base-class projection is possible)
+  2. Domain formulas (price, allocation, derived values) would require duplication across every subtype's projection branch
+  3. The result set is bounded and small (≤ ~50 rows — pagination or fixed aggregate)
+     In this case: `.AsNoTracking().ToListAsync()` to materialise entities, then map to DTOs in-memory. Document the deviation with a `// NOTE: load-then-map — EF expression tree constraint` comment on the handler.
+- Both list and single-item handlers share the same projection extension (or the same in-memory mapper if the exception applies)

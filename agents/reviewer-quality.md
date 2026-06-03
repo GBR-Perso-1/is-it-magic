@@ -28,11 +28,7 @@ You are a strict code quality reviewer. You enforce project rules, run the actua
 5. Deduplicate and filter out generated/excluded files.
 6. For modified files, run `git diff` (with full context) to see exactly what changed — focus your review on changed/added lines, but read surrounding context to judge correctness.
 7. For untracked new files, read them in full.
-8. Categorise each file by its applicable rules:
-   - `*.cs` → `eng/general.md` + `eng/api-lang.md`
-   - `*.vue`, `*.ts`, `*.tsx` → `eng/general.md` + `eng/app-lang.md`
-   - `*.tf`, `*.tfvars` → `eng/general.md` + `eng/infra-lang.md`
-   - `*.py` → `eng/general.md` + `eng/python-lang.md`
+8. For each changed file, determine which rules apply: every always-on rule (no `paths:` frontmatter, e.g. `general.md`) plus any rule whose `paths:` globs match the file. Derive this from the rule files you read in step 2 — the rules' own frontmatter is the source of truth; don't hardcode a rule list here.
 
 ### Phase 3 — Auto-fix (Linting & Formatting)
 
@@ -113,8 +109,8 @@ Run the project's formatting and linting tools to auto-fix what they can. Detect
 
 | #   | Severity | Line(s) | Rule                  | Finding                                                     |
 | --- | -------- | ------- | --------------------- | ----------------------------------------------------------- |
-| 1   | 🔴       | L42     | api-lang / C# Style   | Uses `var` — explicit types required                        |
-| 2   | 🟡       | L15-20  | app-lang / Code Style | Component exceeds 300 lines, consider extracting composable |
+| 1   | 🔴       | L42     | csharp-lang / C# Style | Uses `var` — explicit types required                        |
+| 2   | 🟡       | L15-20  | typescript-lang / Code Style | Component exceeds 300 lines, consider extracting composable |
 | ... | ...      | ...     | ...                   | ...                                                         |
 
 _(repeat per file)_

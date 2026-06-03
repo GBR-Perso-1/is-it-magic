@@ -23,7 +23,7 @@ paths:
 - Pydantic field names: `camelCase` (for JSON serialisation)
 
 ## Imports
-- Standard library → third-party → local (e.g. `src.Domain.Models...`)
+- Standard library → third-party → local (e.g. `myapp.models...`)
 
 ## Logging
 - `info` for progress, `warning` for retries, `error` for failures (with `exc_info=True`), `critical` for data integrity issues
