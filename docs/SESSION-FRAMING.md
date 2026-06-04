@@ -68,6 +68,10 @@ A **backup-as-source** workflow:
 - **The user guides the process and decides each artefact's fate** (rewrite-in-base / split /
   move-to-specialized / drop). Claude reads the backup and proposes; the user decides. Never edit
   the backup.
+- **Port the whole dependency closure, not just the named artefact.** When a skill/agent is rewritten
+  into the live tree, also port what it references — spawned agents, shared `_*.md` fragments — or the
+  live artefact will have dangling references. (e.g. `repo-security-scan` pulled in `scanner-secrets`,
+  `scanner-injection`, `scanner-exposure`, and `_secret-redaction.md`.)
 - Plan of record: `docs/skills-agents-triage.md` (full classification + the 3 decision clusters).
   Litmus: `docs/plugin-model.md`.
 
