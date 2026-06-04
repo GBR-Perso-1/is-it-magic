@@ -25,14 +25,14 @@ top and own stack/company specifics. Each file is placed in exactly one bucket:
 |---|---|---|
 | codebase-explorer | GENERIC | Stack-agnostic; names README/package.json/.csproj only as examples |
 | repo-archaeologist | GENERIC | Multi-stack by design (`.cs`, Python, EF/Prisma/SQLAlchemy as equals) |
-| project-locator | GENERIC | Pure cwd-walk; forbids hardcoded paths |
+| project-locator | GENERIC **(done)** | Ported 2026-06-04: workspace-walk repointed to the `_workspace-discovery` contract (MARKER=`.git`) — fixes the flat-layout hard-error; scoring kept, examples neutralised; result block `Scope:` → `Parent:`. |
 | plugin-architect | GENERIC | About authoring this plugin; explicitly bans stack references |
 | plugin-reviewer | GENERIC | Validates plugin conventions only |
 | scanner-secrets | GENERIC | Multi-stack pattern lib + `STACK_HINT` param (borderline: leaks `appsettings`/`Controllers`) |
 | scanner-injection | GENERIC | C#/Python/Node/Vue patterns as equals (borderline: `Controllers/`, `*DbContext*`) |
 | scanner-exposure | GENERIC | Vite/webpack/.NET as equals (borderline: hardcodes `Program.cs`, `vite.config`) |
 | azure-investigator | STACK-LEAKED | Hardcodes `az` CLI, App Service, Key Vault, Entra — see Cluster 3 |
-| scanner-devbox | STACK-LEAKED | Azure category baked in (`ARM_CLIENT_SECRET`, `.tfstate`) — see Cluster 3 |
+| scanner-devbox | STACK-LEAKED → **GENERIC (done)** | Ported 2026-06-04. Same multi-cloud verdict as the other scanners (Azure patterns are coverage, not a lock; AWS/Terraform/generic too). Generalised the `*-credentials-*.ps1` heuristic → any `credential`/`secret`-named script/config file. Different family from the 3 repo scanners (CSV schema, Variant B) — NOT a `_scanner-base` consumer. |
 | architect | WHOLESALE | `api/src/Domain`, `Application/Features`, MediatR, EF, Pinia through every phase — see Cluster 1 |
 | developer | WHOLESALE | `dotnet ef migrations`, NSwag regen, `npm run type-check`, `ApiClient.ts` — see Cluster 1 |
 | test-writer | WHOLESALE | xUnit/FluentAssertions/Moq/MediatR fixtures + Vitest/Pinia — see Cluster 1 |
@@ -44,7 +44,7 @@ top and own stack/company specifics. Each file is placed in exactly one bucket:
 
 | Skill | Bucket | Strongest evidence |
 |---|---|---|
-| devbox-init | GENERIC | Syncs `rules/` to `~/.claude/`; LSP keys are favoured-language config |
+| devbox-init | GENERIC **(done)** | Ported near-verbatim 2026-06-04. Syncs `rules/` to `~/.claude/` + enables favoured-language LSPs. No deps, no leaks; LSP keys (csharp/typescript/pyright) kept as personal favoured-language config. |
 | project-decide | GENERIC | Conversation-only decision layer; nothing hardcoded |
 | session-to-skill | GENERIC | Authoring skills; placeholderises project specifics |
 | plugin-implement | GENERIC | Authoring plugin artefacts; reads contexts dynamically |
@@ -52,16 +52,16 @@ top and own stack/company specifics. Each file is placed in exactly one bucket:
 | project-investigate | STACK-LEAKED | Azure/Entra/MSAL as first-class detection signals (borderline: GENERIC) — see Cluster 3 |
 | project-requirements | STACK-LEAKED | Quick-scan hardcodes `*.sln`/`Program.cs`; Delivery table prescribes `api/app/infra` — see Cluster 2 |
 | project-implement | STACK-LEAKED | Phase 4 greps `EntityFrameworkCore`/vue; Phase 2 `dotnet test`/`npm test` — see Clusters 1 & 2 |
-| project-sync | STACK-LEAKED | Assumes `.vue` + `<Scope>.Applications/` layout (borderline: GENERIC) |
-| repo-commit | STACK-LEAKED | `dotnet test api/{sln}`, `npm run --prefix app test` — see Cluster 2 |
+| project-sync | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: description "`<Scope>.Applications/`" → "sibling projects under the same parent"; Vue/Perso examples neutralised; `_ux-rules` ref + locator `Scope:`→`Parent:` refs fixed. Dep `project-locator` ported alongside. |
+| repo-commit | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: `api/app/infra` enum → generic path scope; hardcoded `dotnet`/`npm` test commands → toolchain detection (.sln/.csproj, package.json+lockfile, pyproject/pytest); shared-doc refs fixed. Ported deps `_context-resolution.md` + `_contexts-schema.md` (examples neutralised). |
 | repo-git-trigger-workflow | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-03: shortname map → substring-match on discovered workflows; plan/apply gate generalised by keyword; example names neutralised; `_ux-rules` ref + command name fixed. |
 | repo-git-env | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: kept whole in base; init source 1 (workflow scan) is the generic backbone; source 2 generalised to "per-env config-file dir" with `.github/appsettings-value/appsettings.json` as a built-in *default*; source 3 path → any `**/*.tf`; Azure/.NET example values neutralised; `_ux-rules` block added. |
 | az-query | STACK-LEAKED | Azure substrate OK, but Rise examples (justifi, estateops) + reads `infra-naming.md` — see Cluster 3 |
-| devbox-scan-secrets | STACK-LEAKED | Fixed list `.azure/`/`.aws/`/`.ssh/` (borderline: GENERIC) — see Cluster 3 |
-| devbox-set-context | STACK-LEAKED | Schema is GitHub+Entra+ADO; examples `Rise-4`, `gbrourhant@rise.fo` — see Cluster 3 |
+| devbox-scan-secrets | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: description "Azure configs" → "cloud credentials"; Phase 0 made cross-platform (Windows `USERPROFILE`/`APPDATA` **or** Unix `HOME`/`$XDG_CONFIG_HOME`, matching `devbox-init`). `.azure`/`.aws`/`.ssh` are multi-cloud, kept. Deps `_ux-rules`, `_secret-redaction`, `scanner-devbox` all live. |
+| devbox-set-context | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: example identifiers neutralised (`Rise-4`/`gbrourhant@rise.fo`/`github-rise`/`rise-env`/`*.Applications` → placeholders, matching `_contexts-schema`); `/platform:contexts` command refs → `/devbox-set-context`. Kept separate from `devbox-init`. Deps `_ux-rules` + `_contexts-schema` live. |
 | project-session | WHOLESALE | Full .NET/Quasar/Terraform/Azure dossier; only meaningful on the Rise stack |
 | ~~repo-security-scan~~ | ~~WHOLESALE~~ → **GENERIC** | **Re-classified 2026-06-03.** Purpose is generic (orchestrates 3 generic scanner agents); only the description wording + `Rise-4` org-lock were Rise-specific. De-Rised and moved to base; org allowlist (if wanted) can be layered by the rise plugin. |
-| repo-ef-sql | WHOLESALE | `dotnet ef migrations script` generator — canonical wholesale case |
+| repo-ef-sql | WHOLESALE → **MOVED to rise** | Pressure-tested 2026-06-04: genuinely wholesale (no generic core — "generate migration SQL" is not a uniform op across ORMs). Moved verbatim to `rise-dev-plugin/skills/repo-ef-sql/`. Does NOT live in base. First artefact to leave the base. |
 
 **Counts:** Agents — 8 GENERIC, 2 STACK-LEAKED, 6 WHOLESALE. Skills — 5 GENERIC, 10 STACK-LEAKED, 3 WHOLESALE.
 *(Revised in progress: `repo-security-scan` moved WHOLESALE → GENERIC on 2026-06-03 — now 6 GENERIC / 10 STACK-LEAKED / 2 WHOLESALE.)*
@@ -110,10 +110,10 @@ These clearly leave the base. Clean wins, no judgment calls.
   Shared kernel extracted to **`skills/shared/_workspace-discovery.md`** (the "Workspace Discovery
   Contract", parameterised by MARKER) — 2026-06-03.
   - `session-to-skill` (Step 3.3) — **DONE 2026-06-03**: references the contract (MARKER `.claude-plugin/plugin.json`).
-  - `project-locator` (Phase 1) — **TODO**: currently hard-errors "Workspace root not found" on the flat
-    layout; repoint to the contract (MARKER `.git`) when reached in the agents phase.
-  - `project-sync` — **TODO**: whole concept is "siblings in a `*.Applications` folder"; repoint to the
-    contract then filter to siblings under the same parent when rewritten.
+  - `project-locator` (Phase 1) — **DONE 2026-06-04**: repointed to the contract (MARKER `.git`); flat-layout
+    hard-error fixed; result block `Scope:` → `Parent:`.
+  - `project-sync` — **DONE 2026-06-04**: description + examples de-leaked; relies on `project-locator` for
+    discovery (no longer assumes `*.Applications`).
 - **`_scanner-base.md` — hoist triplicated scanner boilerplate** — `scanner-secrets`/`injection`/`exposure`
   repeat ~25 near-identical lines (Guardrails, Inputs, Finding schema, Phase 1 scope-resolution intro,
   findings/pattern/grep caps). Extract to `skills/shared/_scanner-base.md` (mirroring `_secret-redaction.md`).
@@ -146,3 +146,35 @@ These clearly leave the base. Clean wins, no judgment calls.
   `.github/appsettings-value/<env>/appsettings.json` layout as a built-in default (still auto-matches Rise);
   source 3 path generalised to any `**/*.tf`; config-format + apply examples neutralised (dropped
   `AZURE_*`/`APPSETTINGS_JSON`); added the `_ux-rules` Important-rules block. Dep: `_ux-rules` (already live).
+- 2026-06-04 — `repo-ef-sql` **moved out of base** to `rise-dev-plugin/skills/repo-ef-sql/` (verbatim —
+  EF/clean-arch layout is correct for Rise repos). First wholesale mover. **Establishes `rise-dev-plugin`
+  as the destination for .NET-stack content** (was an open question) — relevant to where the
+  `_api-archi-extended.md` holding files and `project-session`'s .NET dossier eventually land.
+- 2026-06-04 — `repo-commit` de-leaked into base (STACK-LEAKED → GENERIC): `api/app/infra` enum → generic
+  path scope; hardcoded `dotnet`/`npm` test commands → **toolchain detection** (manifest/lockfile-based);
+  shared-doc refs fixed to `${CLAUDE_PLUGIN_ROOT}`. Ported its closure: shared `_context-resolution.md`
+  (one `rise-qa` example neutralised) and `_contexts-schema.md` (all real identifiers → placeholders).
+  Cluster 2: the toolchain-detection logic is inline; flag a shared `_toolchain-detection` contract if
+  `project-implement`/`project-requirements` end up needing the same (rule-of-three not yet met).
+- 2026-06-04 — `devbox-init` ported into base near-verbatim (GENERIC). No deps, no leaks. Self-references to
+  `is-it-magic` are correct (it's the plugin's own init skill); favoured-language LSP keys kept. Decision:
+  `devbox-init` and `devbox-set-context` kept **separate** (distinct responsibilities + opposite interaction
+  models — autonomous vs interactive CRUD); the `devbox-*` prefix already groups them.
+- 2026-06-04 — `devbox-set-context` de-leaked into base (STACK-LEAKED → GENERIC): example identifiers
+  neutralised to match `_contexts-schema` (`Rise-4`/`gbrourhant@rise.fo`/`github-rise`/`rise-env`/
+  `*.Applications` paths → placeholders); `/platform:contexts` command references fixed to
+  `/devbox-set-context`. Deps `_ux-rules` + `_contexts-schema` already live — no dangling refs.
+- 2026-06-04 — `devbox-scan-secrets` de-leaked into base (GENERIC) + its `scanner-devbox` dependency ported.
+  Description neutralised ("Azure configs" → "cloud credentials"); Phase 0 made cross-platform (Windows
+  `USERPROFILE`/`APPDATA` or Unix `HOME`/`$XDG_CONFIG_HOME`). `scanner-devbox` is multi-cloud (Azure patterns
+  are coverage, not a lock); `*-credentials-*.ps1` heuristic generalised to any credential/secret-named
+  script/config file. **Correction**: `scanner-devbox` is a *different family* from the 3 repo scanners
+  (CSV schema, Variant B) — NOT a `_scanner-base` consumer, so that extraction only ever needed the 3 repo
+  scanners (all live) and is unblocked now.
+- 2026-06-04 — `project-sync` de-leaked into base (STACK-LEAKED → GENERIC) + its `project-locator` dependency
+  ported. `project-sync`: description "`<Scope>.Applications/`" → "sibling projects under the same parent";
+  Vue/Perso examples neutralised; `_ux-rules` ref fixed; locator `Scope:`→`Parent:` references updated.
+  `project-locator`: **closes the marker-walk backlog item** — Phase 1–2 (`*.Applications` Python walk)
+  replaced with the `_workspace-discovery` contract (MARKER=`.git`), fixing the flat-layout hard-error;
+  scoring kept, `fi--justi-fi` examples neutralised, result block `Scope:` → `Parent:`. The
+  `_workspace-discovery` contract now has its second live consumer (rule-of-three confirmed sound).
