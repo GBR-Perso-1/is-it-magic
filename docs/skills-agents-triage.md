@@ -48,15 +48,15 @@ top and own stack/company specifics. Each file is placed in exactly one bucket:
 | project-decide | GENERIC | Conversation-only decision layer; nothing hardcoded |
 | session-to-skill | GENERIC | Authoring skills; placeholderises project specifics |
 | plugin-implement | GENERIC | Authoring plugin artefacts; reads contexts dynamically |
-| plugin-commit | GENERIC | Versioning the plugin repo itself |
+| plugin-commit | GENERIC **(done)** | Ported 2026-06-04. Fixed `_ux-rules` relative ref → `${CLAUDE_PLUGIN_ROOT}`; neutralised machine-specific example path. Kept **separate** from `repo-commit` (semver-bump vs test-gate; repo-commit hands off to it; `session-to-skill` calls it by name). |
 | project-investigate | STACK-LEAKED | Azure/Entra/MSAL as first-class detection signals (borderline: GENERIC) — see Cluster 3 |
 | project-requirements | STACK-LEAKED | Quick-scan hardcodes `*.sln`/`Program.cs`; Delivery table prescribes `api/app/infra` — see Cluster 2 |
 | project-implement | STACK-LEAKED | Phase 4 greps `EntityFrameworkCore`/vue; Phase 2 `dotnet test`/`npm test` — see Clusters 1 & 2 |
-| project-sync | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: description "`<Scope>.Applications/`" → "sibling projects under the same parent"; Vue/Perso examples neutralised; `_ux-rules` ref + locator `Scope:`→`Parent:` refs fixed. Dep `project-locator` ported alongside. |
+| project-sync → **project-port** | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: description "`<Scope>.Applications/`" → "sibling projects under the same parent"; Vue/Perso examples neutralised; `_ux-rules` ref + locator `Scope:`→`Parent:` refs fixed. Dep `project-locator` ported alongside. **Renamed `project-sync` → `project-port`** (2026-06-04: "sync" implied bidirectional/ongoing; it's a directional one-shot port). |
 | repo-commit | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: `api/app/infra` enum → generic path scope; hardcoded `dotnet`/`npm` test commands → toolchain detection (.sln/.csproj, package.json+lockfile, pyproject/pytest); shared-doc refs fixed. Ported deps `_context-resolution.md` + `_contexts-schema.md` (examples neutralised). |
 | repo-git-trigger-workflow | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-03: shortname map → substring-match on discovered workflows; plan/apply gate generalised by keyword; example names neutralised; `_ux-rules` ref + command name fixed. |
 | repo-git-env | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: kept whole in base; init source 1 (workflow scan) is the generic backbone; source 2 generalised to "per-env config-file dir" with `.github/appsettings-value/appsettings.json` as a built-in *default*; source 3 path → any `**/*.tf`; Azure/.NET example values neutralised; `_ux-rules` block added. |
-| az-query | STACK-LEAKED | Azure substrate OK, but Rise examples (justifi, estateops) + reads `infra-naming.md` — see Cluster 3 |
+| az-query | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04 (Azure substrate → stays base): command name `/infra-azure-query` → `/az-query`; project examples (justifi/estateops) → `myapp`. Purpose codes + `infra-naming.md` read kept (consistent with the kept rule). Dep `_az-auth.md` ported (de-leaked). |
 | devbox-scan-secrets | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: description "Azure configs" → "cloud credentials"; Phase 0 made cross-platform (Windows `USERPROFILE`/`APPDATA` **or** Unix `HOME`/`$XDG_CONFIG_HOME`, matching `devbox-init`). `.azure`/`.aws`/`.ssh` are multi-cloud, kept. Deps `_ux-rules`, `_secret-redaction`, `scanner-devbox` all live. |
 | devbox-set-context | STACK-LEAKED → **GENERIC (done)** | De-leaked 2026-06-04: example identifiers neutralised (`Rise-4`/`gbrourhant@rise.fo`/`github-rise`/`rise-env`/`*.Applications` → placeholders, matching `_contexts-schema`); `/platform:contexts` command refs → `/devbox-set-context`. Kept separate from `devbox-init`. Deps `_ux-rules` + `_contexts-schema` live. |
 | project-session | WHOLESALE | Full .NET/Quasar/Terraform/Azure dossier; only meaningful on the Rise stack |
@@ -178,3 +178,17 @@ These clearly leave the base. Clean wins, no judgment calls.
   replaced with the `_workspace-discovery` contract (MARKER=`.git`), fixing the flat-layout hard-error;
   scoring kept, `fi--justi-fi` examples neutralised, result block `Scope:` → `Parent:`. The
   `_workspace-discovery` contract now has its second live consumer (rule-of-three confirmed sound).
+- 2026-06-04 — `az-query` de-leaked into base (Cluster 3 / Azure-substrate → stays base) + its `_az-auth.md`
+  dependency ported. `az-query`: command name fixed, project examples neutralised; purpose codes and the
+  `infra-naming.md` read kept (consistent with the kept rule). `_az-auth.md`: `rise-env-*.env` hardcode
+  replaced by **reading `azure_env_file_prefix` from the resolved context** (`_context-resolution` →
+  `_contexts-schema`), with a generic `~/.azure/*.env` fallback; made cross-platform (`USERPROFILE`/`HOME`);
+  labels neutralised. **Backlog**: two parallel Azure-context mechanisms exist (env files vs contexts.json
+  `azure_tenant_id`/`azure_subscriptions`) — consider unifying auth onto the manifest later.
+- 2026-06-04 — `plugin-commit` ported into base (GENERIC): `_ux-rules` relative ref fixed; machine-specific
+  example path neutralised. Kept **separate** from `repo-commit` (different cores). This **resolves the
+  `session-to-skill` soft dep** — its `/is-it-magic:plugin-commit` reference now points at a live skill.
+- 2026-06-04 — renamed `project-sync` → **`project-port`** ("sync" implies bidirectional/continuous
+  reconciliation; the skill is a directional one-shot bring-files/feature-over-with-merge). Kept the
+  `project-*` family prefix. Updated frontmatter name + description, README (skill list + command row).
+  No other artefacts referenced it.

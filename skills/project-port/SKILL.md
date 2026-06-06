@@ -1,7 +1,7 @@
 ---
-name: project-sync
+name: project-port
 description: >
-  Sync files between sibling projects under the same parent directory.
+  Port files or a feature between sibling projects under the same parent directory.
   Resolves the target and direction from natural language, resolves files
   from session context and search, asks for confirmation, then merges or
   copies intelligently. Never stages or commits.

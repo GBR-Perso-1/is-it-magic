@@ -6,7 +6,7 @@ General-purpose Claude Code plugin providing an AI-assisted development workflow
 
 | Component  | Count | Items                                                                                                                                                                                                                                                                                                                              |
 | ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Skills** | 18    | `devbox-init`, `project-session`, `project-investigate`, `project-decide`, `project-requirements`, `project-implement`, `project-sync`, `repo-commit`, `repo-ef-sql`, `repo-git-env`, `repo-git-trigger-workflow`, `repo-security-scan`, `plugin-commit`, `plugin-implement`, `devbox-scan-secrets`, `devbox-set-context`, `az-query`, `session-to-skill` |
+| **Skills** | 18    | `devbox-init`, `project-session`, `project-investigate`, `project-decide`, `project-requirements`, `project-implement`, `project-port`, `repo-commit`, `repo-ef-sql`, `repo-git-env`, `repo-git-trigger-workflow`, `repo-security-scan`, `plugin-commit`, `plugin-implement`, `devbox-scan-secrets`, `devbox-set-context`, `az-query`, `session-to-skill` |
 | **Agents** | 16    | `architect`, `developer`, `test-writer`, `reviewer-quality`, `reviewer-design`, `reviewer-perf`, `codebase-explorer`, `repo-archaeologist`, `project-locator`, `azure-investigator`, `scanner-secrets`, `scanner-injection`, `scanner-exposure`, `scanner-devbox`, `plugin-architect`, `plugin-reviewer`                            |
 | **Rules**  | 6     | `general`, `csharp-lang`, `typescript-lang`, `infra-lang`, `infra-naming`, `python-lang` — synced to `~/.claude/rules/` by `/devbox-init`                                                                                                                                                                                                     |
 
@@ -84,7 +84,7 @@ This syncs all bundled plugin rules into `~/.claude/rules/` so they load globall
 | `/project-decide`       | Decision layer between investigation and implementation. Infers debt trajectory, generates 2–4 solution options with pros/cons and effort, and commits to a recommendation. Read-only. |
 | `/project-requirements` | Produce a formal, versioned requirements document for app evolution — never proposes implementation details.                                                                   |
 | `/project-implement`    | Implement a requirement. `full` (default): architect → dev → test → review. `draft`: architect + dev only. `quick`: dev only. Never commits.                                   |
-| `/project-sync`         | Sync files between sibling projects in a `<Scope>.Applications/` folder — merges or copies intelligently. Never stages or commits.                                              |
+| `/project-port`         | Port files or a feature between sibling projects under the same parent directory — merges or copies intelligently. Never stages or commits.                                     |
 
 ### Repository operations
 
