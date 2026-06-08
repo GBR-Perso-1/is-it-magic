@@ -1,0 +1,180 @@
+---
+name: project-decide
+description: Decision layer between investigation/debug and implementation. Reads findings from the conversation, infers debt trajectory from the investigation evidence, generates 2–4 distinct solution options, evaluates each with pros/cons and effort signal, and commits to a recommended option grounded in long-term maintainability and architectural correctness. Strictly read-only — no agents, no file I/O.
+---
+
+## Important rules
+
+Read and follow all rules in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_ux-rules.md`.
+
+## Constraints
+
+- **Read-only.** This skill must never modify source files, configuration, Azure resources, or any project artefact.
+- **No agents.** This skill operates entirely from conversation context — it spawns no sub-agents and performs no file I/O.
+- **No re-scanning.** The skill reasons over findings already present in the conversation. It does not re-run Glob, Grep, or Read operations against the codebase.
+- **Option cap.** Generate a minimum of 2 and a maximum of 4 solution options.
+
+## Input
+
+`$ARGUMENTS` — optional short framing supplied by the user (e.g. "focus on the auth layer", "we can't touch the DB schema"). If absent, the skill infers scope from the investigation or debug report already in the conversation.
+
+The skill's primary input is the **investigation or debug report already present in the conversation context**. It does not require the user to re-run a scan or re-paste findings.
+
+---
+
+### Phase 0 — Locate and absorb the report
+
+1. Scan the current conversation context for an Investigation Report or a Debug Report — both produced by `/project-investigate`. If both are present, prefer the most recent one.
+
+2. If no report is found in the conversation, stop and inform the user:
+
+   Use `AskUserQuestion`:
+   - Question: "No investigation or debug report was found in the conversation. Would you like to run one first, or paste the findings directly?"
+   - Options:
+     - `Run /project-investigate first`
+     - `Paste findings now (I'll provide them)`
+
+   If the user selects "Paste findings now", accept their free-text input as the findings and continue.
+
+3. Read `$ARGUMENTS`. If provided, record it as the **user framing constraint** — it narrows the scope or excludes directions the user has ruled out. If absent, infer scope from the report content.
+
+---
+
+### Phase 1 — Restate the core problem
+
+1. From the findings, derive a concise **Problem Statement** covering:
+   - What the investigation or debug session determined is the core issue or opportunity
+   - The affected area (layer, component, service) as evidenced by the report
+   - Any constraints introduced by `$ARGUMENTS` (if provided)
+
+2. Present the Problem Statement to the user and ask for confirmation via `AskUserQuestion`:
+   - Question: "Before generating options, I want to confirm the problem we are solving. Does this capture it correctly?"
+   - Present the Problem Statement in the question text.
+   - Options:
+     - `Yes — this is correct, generate options`
+     - `No — let me correct it` (user provides correction via the free-text Other input)
+
+3. If the user corrects it: incorporate their correction into the Problem Statement and proceed. Do not re-ask — one correction pass is sufficient.
+
+---
+
+### Phase 2 — Generate solution options
+
+Generate between 2 and 4 distinct solution options by reasoning over the confirmed Problem Statement and the findings. Options must be meaningfully different directions — not variations of the same approach.
+
+**Mandatory option types** (always include both, even if the option count is 2):
+- At least one option must represent the **smallest safe change** — the minimum intervention needed to address the problem without restructuring.
+- At least one option must represent the **most structurally correct** solution — the approach that best aligns with sound design principles, as evidenced by but not limited to the conventions observed in the investigation report.
+
+If user framing constraints from `$ARGUMENTS` rule out a direction (e.g. "we can't touch the DB schema"), do not generate options that violate that constraint. Note the constraint in the relevant section.
+
+For each option, produce all of the following:
+
+```markdown
+#### Option {N}: {Short title}
+
+**Approach**
+A plain-language description of what would change at the conceptual level. No code snippets. No file edit instructions. Describe the direction, not the mechanics.
+
+**Pros**
+- ...
+
+**Cons**
+- ...
+
+**Effort**: Low / Medium / High *(relative to the other options in this report)*
+```
+
+Effort is always relative — calibrate across the full set of options generated, not against an absolute scale.
+
+---
+
+### Phase 3 — Evaluate and recommend
+
+1. Before evaluating options, derive a **Debt Trajectory Assessment** from the investigation report findings. Do not ask the user — reason from the evidence already in the conversation:
+   - **Centrality**: Is the affected area a foundation other components depend on, or an isolated concern?
+   - **Coupling**: How tightly is this area coupled to the rest of the system? Would debt here constrain changes elsewhere?
+   - **Build surface**: Does the investigation suggest this area will be actively extended or built upon going forward?
+
+   State the assessment explicitly in one sentence before proceeding — e.g. *"This area is central to the payment flow, depended on by three other modules — debt here will compound."* or *"This is an isolated utility with no downstream dependents — debt here is low-risk to defer."*
+
+   If the investigation report does not surface enough signal to assess these dimensions, say so explicitly rather than guessing.
+
+2. Review all options against the primary evaluation lens: **long-term maintainability and architectural correctness**, where "architectural correctness" is assessed against sound design principles — not merely against what the existing codebase does today. Conventions observed in the investigation report are evidence, not the standard.
+
+   Weight the recommendation using the Debt Trajectory Assessment:
+   - **High compounding risk** (central, coupled, actively built on): the structurally correct option is the default; departing from it requires an explicit, evidence-grounded justification.
+   - **Low compounding risk** (isolated, low-touch, not a foundation for future work): the minimal-change option is defensible — but still state what debt it defers and why that is safe to carry.
+   - **Uncertain**: call it based on the available evidence and flag the uncertainty in the rationale.
+
+   **Debt deferral obligation**: If the recommended option is the conservative or smallest-change option, explicitly state (a) what technical debt it defers and (b) why that debt is acceptable given the Debt Trajectory Assessment.
+
+3. Select one **Recommended Option**. State it clearly with a short rationale (2–4 sentences) grounded in the evaluation lens and the Debt Trajectory Assessment.
+
+4. If a different option would be preferred under specific conditions, state that conditional preference explicitly alongside the main recommendation. Frame conditions neutrally — do not imply that structural options are inherently conditional or exceptional choices.
+
+---
+
+### Phase 4 — Produce the Decision Report
+
+Present the full Decision Report to the user. Ensure the rationale in the Recommended Option section explicitly references the **Debt Trajectory Assessment** derived in Phase 3.
+
+```markdown
+## Decision Report — <one-line problem title>
+
+### Problem
+<confirmed Problem Statement from Phase 1>
+
+---
+
+### Options
+
+#### Option 1: <title>
+
+**Approach**
+<plain-language description>
+
+**Pros**
+- ...
+
+**Cons**
+- ...
+
+**Effort**: Low / Medium / High
+
+---
+
+#### Option 2: <title>
+... (repeat for each option)
+
+---
+
+### Recommended Option
+
+**Option {N}: <title>**
+
+<rationale — 2–4 sentences grounded in long-term maintainability, architectural correctness, and the Debt Trajectory Assessment>
+
+**Conditional preference**: <if a different option would be better under specific conditions, state it here — or omit this line if no conditional preference applies>
+
+---
+
+> This report is read-only. No code or infrastructure was modified.
+> **Next step**: use `/project-requirements` to produce a formal requirements document before implementation.
+> **Or, to act immediately without a formal requirements document**:
+> - `/project-implement quick` — for contained fixes and small changes (developer only)
+> - `/project-implement draft` — for exploratory or POC work (architect + developer)
+> - `/project-implement` — for larger structural changes or new capabilities (full pipeline)
+```
+
+No confirmation gate is needed after presenting this report — it is a read-only analytical output. The user decides whether and how to act on it.
+
+---
+
+## Conversation Style
+
+- Be analytical and opinionated — surface a clear recommendation, not a list of equally weighted choices.
+- Ground every evaluation point in something specific from the findings (a pattern observed, a tradeoff identified, a convention in use).
+- Do not propose implementation steps, code changes, or file edits — stay at the conceptual level.
+- If the findings are ambiguous or incomplete, acknowledge the uncertainty in the relevant option's Cons rather than refusing to proceed.
+- Use British English throughout.

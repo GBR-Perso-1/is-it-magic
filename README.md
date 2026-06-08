@@ -6,7 +6,7 @@ General-purpose Claude Code plugin providing an AI-assisted development workflow
 
 | Component  | Count | Items                                                                                                                                                                                                                                                                                                                              |
 | ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Skills** | 18    | `devbox-init`, `project-session`, `project-investigate`, `project-decide`, `project-requirements`, `project-implement`, `project-port`, `repo-commit`, `repo-ef-sql`, `repo-git-env`, `repo-git-trigger-workflow`, `repo-security-scan`, `plugin-commit`, `plugin-implement`, `devbox-scan-secrets`, `devbox-set-context`, `az-query`, `session-to-skill` |
+| **Skills** | 17    | `devbox-init`, `project-investigate`, `project-decide`, `project-requirements`, `project-implement`, `project-port`, `apply-conventions`, `repo-commit`, `repo-git-env`, `repo-git-trigger-workflow`, `repo-security-scan`, `plugin-commit`, `plugin-implement`, `devbox-scan-secrets`, `devbox-set-context`, `az-query`, `session-to-skill` |
 | **Agents** | 16    | `architect`, `developer`, `test-writer`, `reviewer-quality`, `reviewer-design`, `reviewer-perf`, `codebase-explorer`, `repo-archaeologist`, `project-locator`, `azure-investigator`, `scanner-secrets`, `scanner-injection`, `scanner-exposure`, `scanner-devbox`, `plugin-architect`, `plugin-reviewer`                            |
 | **Rules**  | 6     | `general`, `csharp-lang`, `typescript-lang`, `infra-lang`, `infra-naming`, `python-lang` — synced to `~/.claude/rules/` by `/devbox-init`                                                                                                                                                                                                     |
 
@@ -79,19 +79,18 @@ This syncs all bundled plugin rules into `~/.claude/rules/` so they load globall
 | Skill                   | Purpose                                                                                                                                                                          |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/devbox-init`          | Set up this machine for the is-it-magic plugin — sync all plugin rules into `~/.claude/rules/` and enable favoured language LSPs in user settings. Idempotent; re-run to refresh. |
-| `/project-session`      | Load architecture docs and current session context (branch, working tree, stack commands) at the start of a conversation for full project awareness.                           |
 | `/project-investigate`  | Investigate a codebase or system — bug hunt, analytical question, or full repository archaeology. Always read-only.                                                             |
 | `/project-decide`       | Decision layer between investigation and implementation. Infers debt trajectory, generates 2–4 solution options with pros/cons and effort, and commits to a recommendation. Read-only. |
 | `/project-requirements` | Produce a formal, versioned requirements document for app evolution — never proposes implementation details.                                                                   |
 | `/project-implement`    | Implement a requirement. `full` (default): architect → dev → test → review. `draft`: architect + dev only. `quick`: dev only. Never commits.                                   |
 | `/project-port`         | Port files or a feature between sibling projects under the same parent directory — merges or copies intelligently. Never stages or commits.                                     |
+| `/apply-conventions`    | Inject generic convention bundles (clean architecture, Vue app, …) into this project — copies them into `.claude/` and links them via `@import` in `CLAUDE.md` as guidance. Idempotent. |
 
 ### Repository operations
 
 | Skill                       | Purpose                                                                                                                  |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `/repo-commit`              | Run the test suite, then stage, commit, and push to the current branch with a conventional-commit message. Tests gate the push. |
-| `/repo-ef-sql`              | Generate a SQL upgrade script from a given EF Core migration to the latest.                                              |
 | `/repo-git-env`             | Manage GitHub environment variables and secrets from a JSON config — validates, confirms, and applies via `gh`.          |
 | `/repo-git-trigger-workflow`| Trigger GitHub Actions workflows via `workflow_dispatch`. Resolves shortnames (app, api, mcp, infra, all), gated by confirmation. |
 | `/repo-security-scan`       | Scan a repo for secrets, injection vulnerabilities, and exposure risks via three parallel scanner agents. Read-only report. |
