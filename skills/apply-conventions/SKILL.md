@@ -1,6 +1,6 @@
 ---
 name: apply-conventions
-description: "Inject one or more generic convention bundles (clean architecture, Vue app, …) into this project — copies the chosen bundle(s) into .claude/ and links them via @import in CLAUDE.md as guidance. Idempotent; re-run to refresh."
+description: "Inject one or more generic convention bundles (clean architecture, Vue app, …) into this project — copies the chosen bundle(s) into .claude/conventions/ and links them via @import in CLAUDE.md as guidance. Idempotent; re-run to refresh."
 ---
 
 Inject generic convention bundles into the current project so that `/project-investigate`, `/project-decide`, `/project-requirements`, and `/project-implement` (and the agents they spawn) become aware of the project's conventions. Bundles are **guidance referenced from CLAUDE.md** — not enforced rules.
@@ -45,11 +45,11 @@ Store the chosen ids as `SELECTED_BUNDLES`.
 For each bundle id `B` in `SELECTED_BUNDLES`:
 
 1. **Source (gold bundle):** `${CLAUDE_PLUGIN_ROOT}/conventions/<B>.md` — the source of truth.
-2. **Copy:** ensure `.claude/` exists; copy the gold bundle → `.claude/<B>.md`, overwriting. The plugin is the source of truth — edits to the project copy are overwritten on re-apply.
+2. **Copy:** ensure `.claude/conventions/` exists; copy the gold bundle → `.claude/conventions/<B>.md`, overwriting. The plugin is the source of truth — edits to the project copy are overwritten on re-apply.
 3. **Link in CLAUDE.md:**
    - If `.claude/CLAUDE.md` does not exist, create it with a `# <project name>` heading followed by a `## Stack Conventions` section.
    - If it exists but has no `## Stack Conventions` section, append that section.
-   - Ensure the line `@./<B>.md` appears exactly once under `## Stack Conventions`. Add it if missing; leave it untouched if already present.
+   - Ensure the line `@./conventions/<B>.md` appears exactly once under `## Stack Conventions`. Add it if missing; leave it untouched if already present.
 
 ## Phase 3 — Report
 
@@ -58,11 +58,11 @@ Print one line per bundle:
 ```
 apply-conventions — Complete
 ──────────────────────────────────────────────
-  <B>   copied → .claude/<B>.md   | import: added | already present
+  <B>   copied → .claude/conventions/<B>.md   | import: added | already present
   ...
 ──────────────────────────────────────────────
 Conventions are now imported into .claude/CLAUDE.md and will load as project context.
-Re-run any time to refresh. To remove a bundle: delete its `@import` line and `.claude/<B>.md`.
+Re-run any time to refresh. To remove a bundle: delete its `@import` line and `.claude/conventions/<B>.md`.
 ```
 
 ## Guardrails
