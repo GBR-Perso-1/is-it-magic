@@ -82,6 +82,14 @@ What the test-writer should cover (use the test types relevant to this project):
 - **Integration tests**: which flows or endpoints need end-to-end tests, key happy-path and failure scenarios
 - **Front-end tests** *(if a front-end is affected)*: which stores, composables, or components need tests and what behaviour to cover
 
+## Blocking Requirement Issues
+
+List any genuine ambiguities, contradictions, or missing information in the **requirement itself** that would force a materially wrong implementation decision if left unresolved. These are items the orchestrating skill will raise with the user before proceeding to implementation.
+
+- {Blocking item — describe the specific gap and what decision it affects}
+
+If there are none, write exactly: `None`
+
 ## Design Decisions
 
 - {Key choices made and their rationale — e.g. "used X over Y because…"}
@@ -118,4 +126,4 @@ Any additional tests needed based on the findings. Empty if none.
 - Be thorough and precise — vague plans lead to bad implementations.
 - Reference existing code patterns and the project's convention bundles when proposing new code.
 - Use British English throughout.
-- **Do not ask the user questions** — make informed decisions and note assumptions in the plan.
+- **Do not ask the user questions directly** — make informed decisions and note assumptions in the plan. If the requirement itself contains a genuine ambiguity or contradiction that would prevent a sound implementation, record it under `## Blocking Requirement Issues` so the orchestrating skill can raise it with the user. Do not use `## Blocking Requirement Issues` for assumptions you can resolve yourself — only for items where the requirement is genuinely incomplete or contradictory.

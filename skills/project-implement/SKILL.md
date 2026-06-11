@@ -61,29 +61,29 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 1. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/architect.md`.
    - Pass it the full requirement text and instruct it to produce a concrete implementation plan.
-   - The plan must include: affected files, new files to create, data model changes, API changes, UI changes, and a step-by-step implementation order.
-2. Present the architect's plan to the user.
-3. Ask via `AskUserQuestion`:
-   - `Looks good — proceed to implementation (Recommended)`
-   - `I want to refine the plan`
-   - `Start over with different requirements`
-4. If the user wants refinements, relay their feedback to the architect agent via `SendMessage` and repeat steps 2–3 until approved.
+   - The plan must include: affected files, new files to create, data model changes, API changes, UI changes, a step-by-step implementation order, and a `## Blocking Requirement Issues` section (containing either a list of blocking items or the single word `None`).
+2. Inspect the architect's plan for the `## Blocking Requirement Issues` section:
+   - **If the section contains `None`** (or is absent) → proceed directly to Phase 2. Do not ask the user to approve the plan.
+   - **If the section lists one or more blocking issues** → present the plan and the blocking issues to the user, then ask via `AskUserQuestion`:
+     - `I'll clarify — here are my answers` *(the user provides clarification via the free-text "Other" input)*
+     - `Start over with different requirements`
+     Relay the user's clarification answers to the architect agent via `SendMessage`, instructing it to revise the plan. Repeat step 2 until the section contains `None`.
 
 ### Phase 2 — Implementation (Developer Agent)
 
-5. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/developer.md`.
-   - Pass it the **approved architecture plan** and the **original requirements**.
+3. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/developer.md`.
+   - Pass it the **architecture plan** and the **original requirements**.
    - Instruct it to implement all changes described in the plan, then **run the project's test suite inline** before returning (using the project's own test command, detected from its toolchain). It should report which tests passed, failed, or were skipped — this is a quick smoke check, not a full test pass.
-6. Wait for the developer agent to complete. Collect its summary of changes made and the inline test results.
+4. Wait for the developer agent to complete. Collect its summary of changes made and the inline test results.
 
 ### Phase 3 — Testing (Test Agent)
 
-7. If the developer's inline test run from Phase 2 showed failures unrelated to missing test coverage (i.e. source bugs), pass the failures back to the **developer agent** via `SendMessage` to fix them before proceeding. Skip directly to Phase 4 if the inline run was clean.
+5. If the developer's inline test run from Phase 2 showed failures unrelated to missing test coverage (i.e. source bugs), pass the failures back to the **developer agent** via `SendMessage` to fix them before proceeding. Skip directly to Phase 4 if the inline run was clean.
 
-8. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/test-writer.md`.
+6. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/test-writer.md`.
    - Pass it: (1) the **original requirements**, (2) the **Test Strategy section** from the architect's plan.
    - The test-writer derives test scenarios from the requirements — not from what the developer coded.
-9. Evaluate the test report:
+7. Evaluate the test report:
    - **All pass** → proceed to Phase 4.
    - **Failures due to source bugs** → pass the failing test details back to the **developer agent** via `SendMessage` to fix. Then re-run Phase 3 (spawn a fresh test-writer agent).
    - **Maximum 2 iterations** of the dev↔test loop. If tests still fail after 2 rounds, present via `AskUserQuestion`:
@@ -93,20 +93,20 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 ### Phase 4 — Review (Quality + Design Agents)
 
-10. **Relevance check** — decide whether the performance reviewer is needed:
+8. **Relevance check** — decide whether the performance reviewer is needed:
     - If the change touches **executable code** (back-end logic, data access, or front-end logic) → **perf review applies**, spawn all three reviewers.
     - If the change is **docs/config-only** with no runtime code → **perf review skipped**, spawn quality + design only.
 
     (The performance reviewer is stack-aware — it reads the project's convention bundles to apply the relevant perf lens — so it self-limits when little applies.)
 
-11. Spawn reviewers in parallel (two or three per the relevance check):
+9. Spawn reviewers in parallel (two or three per the relevance check):
     - **Code-quality reviewer**: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-quality.md` — linting, style, rule compliance.
     - **Design reviewer**: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-design.md` — requirement coverage, architectural boundaries, abstraction quality, consistency.
     - **Performance reviewer** *(when runtime code changed)*: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-perf.md` — slow queries, N+1, unbounded loads, expensive loops, missing caching, front-end perf.
 
-12. Collect all reports. Record which reviewers **passed** and which **flagged issues**. Present findings to the user.
+10. Collect all reports. Record which reviewers **passed** and which **flagged issues**. Present findings to the user.
 
-13. Evaluate findings:
+11. Evaluate findings:
     - **No violations or warnings** → proceed to Phase 5.
     - **Implementation errors only** (code quality issues, bugs, style) → pass findings to the **developer agent** via `SendMessage` for corrections. Re-run Phase 3 (testing), then **re-run only the reviewers that previously flagged issues** — skip reviewers that already passed.
     - **Design errors** (wrong abstraction, domain boundary violation, requirement mismatch, missing functionality) → pass findings back to the **architect agent** via `SendMessage` to revise the plan. Re-run from Phase 2 with all reviewers reset.
@@ -117,11 +117,11 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 ### Phase 5 — Done
 
-14. Present a final summary to the user:
+12. Present a final summary to the user:
     - What was implemented (files created/modified)
     - Test results (pass/fail counts)
     - Review outcome (clean / accepted with notes)
-15. Ask via `AskUserQuestion`:
+13. Ask via `AskUserQuestion`:
     - `Commit these changes (Recommended)`
     - `I want to review the changes manually`
 
@@ -135,26 +135,27 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 1. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/architect.md`.
    - Pass it the full requirement text and instruct it to produce a concrete implementation plan.
-2. Present the architect's plan to the user.
-3. Ask via `AskUserQuestion`:
-   - `Looks good — proceed to implementation (Recommended)`
-   - `I want to refine the plan`
-   - `Start over with different requirements`
-4. If the user wants refinements, relay their feedback to the architect agent via `SendMessage` and repeat steps 2–3 until approved.
+   - The plan must include a `## Blocking Requirement Issues` section (containing either a list of blocking items or the single word `None`).
+2. Inspect the architect's plan for the `## Blocking Requirement Issues` section:
+   - **If the section contains `None`** (or is absent) → proceed directly to Phase 2. Do not ask the user to approve the plan.
+   - **If the section lists one or more blocking issues** → present the plan and the blocking issues to the user, then ask via `AskUserQuestion`:
+     - `I'll clarify — here are my answers` *(the user provides clarification via the free-text "Other" input)*
+     - `Start over with different requirements`
+     Relay the user's clarification answers to the architect agent via `SendMessage`, instructing it to revise the plan. Repeat step 2 until the section contains `None`.
 
 ### Phase 2 — Implementation (Developer Agent)
 
-5. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/developer.md`.
-   - Pass it the **approved architecture plan** and the **original requirements**.
+3. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/developer.md`.
+   - Pass it the **architecture plan** and the **original requirements**.
    - Instruct it to implement all changes described in the plan. No inline test run is required in Draft mode.
-6. Wait for the developer agent to complete. Collect its summary of changes made.
+4. Wait for the developer agent to complete. Collect its summary of changes made.
 
 ### Phase 3 — Done
 
-7. Present a final summary to the user:
+5. Present a final summary to the user:
    - What was implemented (files created/modified)
    - A reminder that no tests or reviews were run — this output is draft quality
-8. Ask via `AskUserQuestion`:
+6. Ask via `AskUserQuestion`:
    - `Promote to full — run tests and review now (Recommended)`
    - `Leave as draft — I'll review manually`
 
