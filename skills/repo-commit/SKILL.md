@@ -1,6 +1,6 @@
 ---
 name: repo-commit
-description: "Run the test suite, then stage, commit, and push changes to the current branch with a conventional-commit message. Use when the user wants to commit, save, or push their work in a project repo — runs tests first and gates the push. For committing the plugin repo itself, use plugin-commit instead."
+description: "Run the test suite, then stage, commit, and push changes to the current branch with a conventional-commit message. Use when the user wants to commit, save, or push their work in a project repo — runs tests first. Pushes automatically when the user invokes it directly (/repo-commit); gates the push behind confirmation when invoked programmatically by Claude, another skill, or an agent. For committing the plugin repo itself, use plugin-commit instead."
 ---
 
 ## Arguments
@@ -76,13 +76,23 @@ Apply R.2–R.3 from the context resolution contract against the current working
 
 ### 5. Push
 
-Show the user:
+Always show the user:
 
 - The commit message
 - The target branch
 - Whether any remote changes were rebased in
 
-**GATE** — Ask if the user wants to push. On confirmation:
+**Push gate — conditional on how this skill was invoked:**
+
+- **Direct user invocation** — the user personally typed `/repo-commit` (a user-issued slash command) this turn. The invocation *is* the authorisation: **push immediately, without asking.**
+- **Programmatic invocation** — this skill was triggered any other way: Claude calling it via the Skill tool, a step inside another skill or workflow, or any agent/subagent. **Keep the gate** — ask via `AskUserQuestion` before pushing:
+  1. `Push now (Recommended)`
+  2. `Don't push — leave the commit local`
+- **When the invocation source is unclear, treat it as programmatic and ask.** Only a direct, user-typed `/repo-commit` skips the gate.
+
+This conditional governs only the routine push confirmation. The Step 4a context-mismatch check is a safety gate and still applies in **both** cases — never push on a remote-owner mismatch without confirmation.
+
+On push:
 
 ```bash
 git push

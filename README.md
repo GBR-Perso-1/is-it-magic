@@ -6,7 +6,7 @@ General-purpose Claude Code plugin providing an AI-assisted development workflow
 
 | Component  | Count | Items                                                                                                                                                                                                                                                                                                                              |
 | ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Skills** | 17    | `devbox-init`, `project-investigate`, `project-decide`, `project-requirements`, `project-implement`, `project-port`, `apply-conventions`, `repo-commit`, `repo-git-env`, `repo-git-trigger-workflow`, `repo-security-scan`, `plugin-commit`, `plugin-implement`, `devbox-scan-secrets`, `devbox-set-context`, `az-query`, `session-to-skill` |
+| **Skills** | 18    | `devbox-init`, `project-investigate`, `project-decide`, `project-requirements`, `project-implement`, `project-port`, `apply-conventions`, `repo-commit`, `repo-commit-and-deploy`, `repo-git-env`, `repo-git-trigger-workflow`, `repo-security-scan`, `plugin-commit`, `plugin-implement`, `devbox-scan-secrets`, `devbox-set-context`, `az-query`, `session-to-skill` |
 | **Agents** | 16    | `architect`, `developer`, `test-writer`, `reviewer-quality`, `reviewer-design`, `reviewer-perf`, `codebase-explorer`, `repo-archaeologist`, `project-locator`, `azure-investigator`, `scanner-secrets`, `scanner-injection`, `scanner-exposure`, `scanner-devbox`, `plugin-architect`, `plugin-reviewer`                            |
 | **Rules**  | 6     | `general`, `csharp-lang`, `typescript-lang`, `infra-lang`, `infra-naming`, `python-lang` — synced to `~/.claude/rules/` by `/devbox-init`                                                                                                                                                                                                     |
 
@@ -90,7 +90,8 @@ This syncs all bundled plugin rules into `~/.claude/rules/` so they load globall
 
 | Skill                       | Purpose                                                                                                                  |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `/repo-commit`              | Run the test suite, then stage, commit, and push to the current branch with a conventional-commit message. Tests gate the push. |
+| `/repo-commit`              | Run the test suite, then stage, commit, and push to the current branch with a conventional-commit message. Tests gate the push. Pushes automatically on direct invocation; gates when invoked programmatically. |
+| `/repo-commit-and-deploy`   | Chain commit-and-push with a workflow trigger — commit, push, then fire the named deploy workflow(s). Gate-free on direct, fully-specified invocation (even prod); keeps all safety gates. |
 | `/repo-git-env`             | Manage GitHub environment variables and secrets from a JSON config — validates, confirms, and applies via `gh`.          |
 | `/repo-git-trigger-workflow`| Trigger GitHub Actions workflows via `workflow_dispatch`. Resolves shortnames (app, api, mcp, infra, all), gated by confirmation. |
 | `/repo-security-scan`       | Scan a repo for secrets, injection vulnerabilities, and exposure risks via three parallel scanner agents. Read-only report. |

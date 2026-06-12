@@ -1,6 +1,6 @@
 ---
 name: repo-git-trigger-workflow
-description: Trigger one or more GitHub Actions workflows via workflow_dispatch on a target repo. Resolves workflow shortnames by matching against the repo's discovered workflows, auto-detects required inputs, and gates firing behind explicit confirmation.
+description: Trigger one or more GitHub Actions workflows via workflow_dispatch on a target repo. Resolves workflow shortnames by matching against the repo's discovered workflows and auto-detects required inputs. Fires immediately when the user invokes it directly with scope and all required inputs (including environment) fully specified — even for prod; otherwise gates firing behind explicit confirmation.
 ---
 
 Trigger GitHub Actions workflows via `workflow_dispatch` on the current repo or a sibling project in the same org.
@@ -26,7 +26,8 @@ Read and follow all rules in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_ux-rules.md`.
 
 ## Guardrails
 
-- **Never** fire any workflow without an explicit confirmation gate — even for `qa` environments.
+- **The confirmation gate is conditional** (see step 6). Fire *without* it only on a **direct, fully-specified user invocation** — the user personally typed `/repo-git-trigger-workflow` with the scope (workflow tokens) and every required input (including `environment`) supplied in the arguments. In **every** other case — programmatic invocation (Claude via the Skill tool, another skill/workflow, or an agent), or any value that was defaulted, asked, or interactively resolved — an explicit confirmation gate is **mandatory**, even for `qa`. When the source is unclear, treat it as programmatic and ask.
+- The **plan/apply sequential gate** (step 6) is a safety mechanism and **always** applies — never auto-chain `plan` → `apply` without reviewing plan output, regardless of how the skill was invoked.
 - **Never** assume input values (especially `environment`) — read them from the user's arguments, or ask.
 - **Always** verify the target repo exists (`gh repo view`) before firing.
 - **Never** trigger on a branch other than the default branch unless the user explicitly named one.
@@ -125,6 +126,18 @@ Store as `RESOLVED_INPUTS[workflow] = { key: value, ... }`.
 
 ### 6. Confirmation gate
 
+**Gate applicability — decide first whether the routine confirmation is required.**
+
+Skip the confirmation prompt and fire immediately — **even when `environment=prod`** — only when **all** of these hold:
+
+- **Direct user invocation** — the user personally typed `/repo-git-trigger-workflow …` this turn (not Claude via the Skill tool, not another skill or workflow, not an agent/subagent).
+- **Scope fully specified** — every target workflow was resolved from explicit tokens in the user's arguments; nothing in step 3 was chosen through an interactive prompt.
+- **Inputs fully specified** — every required input, including `environment`, was taken directly from the user's arguments (step 5 case 1 or 2). None fell back to a default (case 3) or had to be asked (case 4).
+
+When all three hold, still **show the summary picture below** (so the user sees exactly what fired), then proceed straight to step 7 — do **not** call `AskUserQuestion`.
+
+In **every other case** — programmatic invocation, or any workflow/input that was defaulted, asked, or interactively resolved — the gate is **mandatory**. When the invocation source is unclear, treat it as programmatic and ask.
+
 Show the user the full picture:
 
 ```
@@ -142,7 +155,7 @@ Show the user the full picture:
 ──────────────────────────────────────
 ```
 
-Then ask via `AskUserQuestion`:
+**If the gate applies** (per "Gate applicability" above), ask via `AskUserQuestion`:
 
 > "Trigger these workflows on `<TARGET_REPO>`?"
 
@@ -151,7 +164,7 @@ Options:
 1. Yes — trigger all *(Recommended)*
 2. Cancel
 
-If the selection contains a **plan/apply pair** (detected in step 3), the gate must be split:
+If the selection contains a **plan/apply pair** (detected in step 3), the gate must be split — and this split **always applies, even on a direct fully-specified invocation** (it is a safety review of plan output, not a routine confirmation):
 
 - First gate: confirm the `plan` workflow only.
 - After plan completes (poll `gh run list` until status is `completed`), show plan results and ask a **second** gate to confirm the `apply` workflow.
@@ -198,4 +211,4 @@ If any `gh workflow run` returned an error, list it explicitly and do not preten
 
 - Every selected workflow appears in `gh run list` with status `queued` or `in_progress` and a fresh timestamp.
 - `gh run view <run-id> --repo <TARGET_REPO>` resolves for each printed URL.
-- No workflow was fired without passing through the step 6 gate.
+- No workflow was fired without passing through the step 6 gate — **except** on a direct, fully-specified user invocation, where the routine gate is intentionally skipped (the plan/apply review gate still applies).
