@@ -222,6 +222,16 @@ Same as Investigate Mode Phase 2.
 > - `/project-implement quick` — developer only, for small contained changes
 ```
 
+After presenting the Debug Report, ask via `AskUserQuestion`:
+
+- Question: "The Debug Report is complete. Continue to `/project-decide` now to evaluate solution options? (`/project-decide` reads this report straight from the conversation — no need to re-run the investigation.)"
+- Options:
+  - `Continue to /project-decide now (Recommended)`
+  - `Stop here — I'll decide what to do next`
+
+If **"Continue to /project-decide now"**: invoke `/project-decide` with no arguments — it locates this Debug Report in the conversation automatically.
+If **"Stop here"**: end the skill; the report remains in the conversation.
+
 ---
 
 ### Investigate Mode
@@ -356,6 +366,16 @@ Same as Debug Mode Phase 2.
 > - `/project-implement draft` — architect + developer only, for fast iteration
 > - `/project-implement quick` — developer only, for small contained changes
 ```
+
+After presenting the Investigation Report, ask via `AskUserQuestion`:
+
+- Question: "The Investigation Report is complete. Continue to `/project-decide` now to evaluate solution options? (`/project-decide` reads this report straight from the conversation — no need to re-run the investigation.)"
+- Options:
+  - `Continue to /project-decide now (Recommended)`
+  - `Stop here — I'll decide what to do next`
+
+If **"Continue to /project-decide now"**: invoke `/project-decide` with no arguments — it locates this Investigation Report in the conversation automatically.
+If **"Stop here"**: end the skill; the report remains in the conversation.
 
 ---
 

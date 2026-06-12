@@ -160,14 +160,24 @@ Present the full Decision Report to the user. Ensure the rationale in the Recomm
 ---
 
 > This report is read-only. No code or infrastructure was modified.
-> **Next step**: use `/project-requirements` to produce a formal requirements document before implementation.
-> **Or, to act immediately without a formal requirements document**:
-> - `/project-implement quick` — for contained fixes and small changes (developer only)
-> - `/project-implement draft` — for exploratory or POC work (architect + developer)
-> - `/project-implement` — for larger structural changes or new capabilities (full pipeline)
 ```
 
-No confirmation gate is needed after presenting this report — it is a read-only analytical output. The user decides whether and how to act on it.
+After presenting the Decision Report, ask via `AskUserQuestion`:
+
+- Question: "The Decision Report is ready. What would you like to do next?"
+- Options (exactly these four, in this order):
+  - `Run /project-implement — full architect → dev → test → review pipeline (Recommended)`
+  - `Run /project-implement — draft or quick (I'll specify which)`
+  - `Run /project-requirements first — produce a formal requirements document`
+  - `Stop here — I'll act on this report when ready`
+
+Behaviour:
+- Option 1 → invoke `/project-implement` with no mode argument (full pipeline).
+- Option 2 → ask which mode (the user may state `draft` or `quick` directly via the "Other" input), then invoke `/project-implement <mode>`.
+- Option 3 → invoke `/project-requirements`.
+- Option 4 → end the skill; the report remains in the conversation.
+
+This handoff offers to invoke another skill — selecting "Stop here" leaves everything untouched. The skill performs no file changes.
 
 ---
 
