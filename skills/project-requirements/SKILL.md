@@ -132,12 +132,23 @@ Break the implementation into ordered batches. Each phase should be deliverable 
 
 7. Present the draft to the user via `AskUserQuestion` with options:
    - "Looks good — save it"
+   - "Don't save — go straight to implementation"
    - "I want to revise some requirements"
    - "Let's brainstorm more before finalising"
    - "Split into separate documents — this covers too much"
    - "Other"
 
-8. When approved, save the document to `docs/requirements/` with a descriptive filename (e.g. `docs/requirements/evolution-v2-pricing-overhaul.md`).
+8. **If "Looks good — save it"**: save the document to `docs/requirements/` with a descriptive filename (e.g. `docs/requirements/evolution-v2-pricing-overhaul.md`).
+
+9. **If "Don't save — go straight to implementation"**: take the **transient path** — do **not** write anything to disk.
+   - Keep the compiled requirements draft in the conversation as the working brief.
+   - Ask the user via `AskUserQuestion`: "Proceed with implementation now using these requirements?" with options:
+     - "Yes — full pipeline" (`/project-implement` — architect → dev → test → review)
+     - "Yes — draft mode" (`/project-implement draft` — architect + developer only)
+     - "Yes — quick mode" (`/project-implement quick` — developer only)
+     - "No — stop here"
+   - If the user picks any "Yes" option, hand the in-conversation requirements brief straight to `/project-implement` (in the chosen mode) as the requirement input — no requirements file is created.
+   - If the user picks "No — stop here", end the skill; the requirements remain only in the conversation.
 
 ## Conversation Style
 
