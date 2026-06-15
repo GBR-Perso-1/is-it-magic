@@ -167,13 +167,13 @@ After presenting the Decision Report, ask via `AskUserQuestion`:
 - Question: "The Decision Report is ready. What would you like to do next?"
 - Options (exactly these four, in this order):
   - `Run /project-implement — full architect → dev → test → review pipeline (Recommended)`
-  - `Run /project-implement — draft or quick (I'll specify which)`
+  - `Run /project-implement — draft, increment, or quick (I'll specify which)`
   - `Run /project-requirements first — produce a formal requirements document`
   - `Stop here — I'll act on this report when ready`
 
 Behaviour:
 - Option 1 → invoke `/project-implement` with no mode argument (full pipeline).
-- Option 2 → ask which mode (the user may state `draft` or `quick` directly via the "Other" input), then invoke `/project-implement <mode>`.
+- Option 2 → ask which mode (the user may state `draft`, `increment`, or `quick` directly via the "Other" input), then invoke `/project-implement <mode>`.
 - Option 3 → invoke `/project-requirements`.
 - Option 4 → end the skill; the report remains in the conversation.
 

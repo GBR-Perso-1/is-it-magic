@@ -2,10 +2,11 @@
 name: project-implement
 description: >
   Implement a requirement or fix with configurable rigour.
-  Three modes:
+  Four modes:
   no arg or "full" = architect → developer → test → review pipeline (default);
   "draft" = architect + developer, no test loop, no review (fast iteration / POC);
-  "quick" = developer only, no architect, no test, no review (lightweight fix).
+  "quick" = developer only, no architect, no test, no review (lightweight fix);
+  "increment" = developer + test loop, no architect, no review (tested change to live code).
   Never commits — always leaves the user to review the diff.
 ---
 
@@ -23,6 +24,7 @@ Read and follow all rules in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_ux-rules.md`.
 | `full <text>` or `full` | **Full** | Treat remainder as the requirement; ask if blank |
 | `draft <text>` or `draft` | **Draft** | Treat remainder as the requirement; ask if blank |
 | `quick <text>` or `quick` | **Quick** | Treat remainder as the requirement; ask if blank |
+| `increment <text>` or `increment` | **Increment** | Treat remainder as the requirement; ask if blank |
 
 If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode keyword, treat the entire string as the requirement and prompt for the mode.
 
@@ -31,7 +33,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 ## Phase 0 — Mode selection and input gathering
 
 1. Parse `$ARGUMENTS`:
-   - Extract the mode keyword if present (`full`, `draft`, `quick`).
+   - Extract the mode keyword if present (`full`, `draft`, `quick`, `increment`).
    - Extract the remainder as the requirement text (may be a path to a requirements document or an inline description).
 2. If no mode keyword was found, ask via `AskUserQuestion`:
    - Question: "Which implementation mode?"
@@ -39,6 +41,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
      - `full — architect → dev → test → review (Recommended)`
      - `draft — architect + dev only, no test or review`
      - `quick — dev only, no ceremony`
+     - `increment — dev + test, no architect, no review (tested change to live code)`
 3. If the requirement text is blank (regardless of mode), ask via `AskUserQuestion`:
    - Question: "What would you like to implement? Provide an inline description or a path to a requirements document."
    - Option: `I'll describe it`
@@ -186,6 +189,49 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 ---
 
+## Increment mode
+
+*Developer + test loop — no architect, no review*
+
+### Phase 1 — Implementation (Developer Agent)
+
+1. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/developer.md`.
+   - Pass it the implementation brief from Phase 0.
+   - Instruct it to implement only what is described — no scope creep.
+   - Instruct it to **run the project's test suite inline** before returning (using the project's own test command, detected from its toolchain). It should report which tests passed, failed, or were skipped — this is a quick smoke check, not a full test pass.
+2. Wait for the developer agent to complete. Collect its summary of changes made and the inline test results.
+
+### Phase 2 — Testing (Test Agent)
+
+3. If the developer's inline test run from Phase 1 showed failures unrelated to missing test coverage (i.e. source bugs), pass the failures back to the **developer agent** via `SendMessage` to fix them before proceeding. Skip directly to Phase 3 if the inline run was clean.
+
+4. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/test-writer.md`.
+   - Pass it: (1) the **original requirements**, and (2) this explicit instruction: **"There is no architect plan for this run. Derive your test scenarios directly from the requirement brief alone — treat the brief as the sole authoritative specification of what the system must do. Do not invent scenarios from the implementation."**
+   - The test-writer derives test scenarios from the requirement brief — not from what the developer coded.
+5. Evaluate the test report:
+   - **All pass** → proceed to Phase 3.
+   - **Failures due to source bugs** → pass the failing test details back to the **developer agent** via `SendMessage` to fix. Then re-run Phase 2 (spawn a fresh test-writer agent).
+   - **Maximum 2 iterations** of the dev↔test loop. If tests still fail after 2 rounds, present via `AskUserQuestion`:
+     - `Continue iterating`
+     - `Promote to full — add review now`
+     - `Stop here — I'll fix manually`
+
+### Phase 3 — Done
+
+6. Present a final summary to the user:
+   - What was implemented (files created/modified)
+   - Test results (pass/fail counts)
+   - A reminder that no architectural review or code review was run
+7. Ask via `AskUserQuestion`:
+   - `Promote to full — add review now (run the review phase)`
+   - `Leave as-is — I'll review the diff manually`
+
+> Selecting "Promote to full — add review now" re-enters this skill at Full mode Phase 4 (Review), carrying forward the developer agent's output and the test results. The test-writer does **not** re-run — the tests from Phase 2 stand.
+
+**Never commit.** Always end here and leave the user to review and commit.
+
+---
+
 ## Orchestration Rules
 
 - **Always use `SendMessage`** to continue an existing agent rather than spawning a new one (except for the test-writer, which should always be spawned fresh each iteration since it re-analyses changes from scratch).
@@ -200,4 +246,5 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 - Be a **project manager** — coordinate, summarise progress, and keep things moving.
 - After each phase, give the user a brief status update before proceeding.
 - In Quick mode, be brief and direct — this is a quick-fix flow, not a project.
+- In Increment mode, be concise — this is a targeted, tested change, not a full project pipeline.
 - If an agent produces unexpected output, flag it to the user rather than guessing.

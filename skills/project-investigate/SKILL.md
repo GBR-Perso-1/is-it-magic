@@ -219,6 +219,7 @@ Same as Investigate Mode Phase 2.
 > **Next step**: use `/project-decide` to evaluate solution options, or `/project-requirements` to go straight to requirements — then use `/project-implement` to act:
 > - `/project-implement` — full architect → dev → test → review pipeline (default)
 > - `/project-implement draft` — architect + developer only, for fast iteration
+> - `/project-implement increment` — developer + test loop, no architect or review (tested change to live code)
 > - `/project-implement quick` — developer only, for small contained changes
 ```
 
@@ -364,6 +365,7 @@ Same as Debug Mode Phase 2.
 > **Next step**: use `/project-decide` to evaluate solution options, or `/project-requirements` to go straight to requirements — then use `/project-implement` to act:
 > - `/project-implement` — full architect → dev → test → review pipeline (default)
 > - `/project-implement draft` — architect + developer only, for fast iteration
+> - `/project-implement increment` — developer + test loop, no architect or review (tested change to live code)
 > - `/project-implement quick` — developer only, for small contained changes
 ```
 

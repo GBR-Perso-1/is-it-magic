@@ -145,6 +145,7 @@ Break the implementation into ordered batches. Each phase should be deliverable 
    - Ask the user via `AskUserQuestion`: "Proceed with implementation now using these requirements?" with options:
      - "Yes — full pipeline" (`/project-implement` — architect → dev → test → review)
      - "Yes — draft mode" (`/project-implement draft` — architect + developer only)
+     - "Yes — increment mode" (`/project-implement increment` — developer + test loop, no architect or review)
      - "Yes — quick mode" (`/project-implement quick` — developer only)
      - "No — stop here"
    - If the user picks any "Yes" option, hand the in-conversation requirements brief straight to `/project-implement` (in the chosen mode) as the requirement input — no requirements file is created.
@@ -162,4 +163,5 @@ Break the implementation into ordered batches. Each phase should be deliverable 
 > **Next step**: once the requirements document is saved, use `/project-implement` to act on these requirements.
 > - `/project-implement` — full architect → dev → test → review pipeline (default)
 > - `/project-implement draft` — architect + developer only, no test loop, for fast iteration
+> - `/project-implement increment` — developer + test loop, no architect or review (tested change to live code)
 > - `/project-implement quick` — developer only, for small or contained changes
