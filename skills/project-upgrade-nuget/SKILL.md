@@ -1,5 +1,5 @@
 ---
-name: migrate-api-packages
+name: project-upgrade-nuget
 description: "Upgrade a .NET API's NuGet packages to their latest versions and verify with build + tests, holding back any package whose latest major is known-incompatible with the current framework until it is safe to bump."
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: project-safe-npm-upgrade
+name: project-upgrade-npm-safe
 description: >
   Upgrade a JavaScript/TypeScript project's npm dependencies to their latest
   stable versions with controlled risk — bump safe minor/patch and low-risk
