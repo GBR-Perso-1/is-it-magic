@@ -1,6 +1,6 @@
 ---
 name: repo-git-env
-description: Manage GitHub environment variables and secrets for a repository from a JSON config file — validates, confirms, and applies directly via gh CLI. Can also scan a project codebase and generate a template config with placeholder values.
+description: Manage GitHub environment variables and secrets for a repository from a JSON config file — validates, confirms, and applies directly via gh CLI. Can also scan a project codebase to generate a config, auto-filling as many real values as it can from existing GitHub variables, infrastructure-as-code naming, and read-only cloud lookups, leaving descriptive placeholders only for what it cannot determine.
 ---
 
 Manage GitHub environment variables and secrets for a repository from a JSON config file.
@@ -36,6 +36,8 @@ If arguments are empty, follow the **Init mode** section using `.` as the projec
 - Removals must be **explicit** — only delete a variable or secret when its value is `"@remove"` in the config
 - **Always verify the target repo via `gh repo view`** before showing the summary — abort if the repo doesn't exist or the user lacks access
 - **Never proceed without explicit user confirmation** — the user must type YES after reviewing the summary
+- **Cloud lookups during `init` are strictly read-only** — query provider CLIs only to read values; never create, modify, or delete cloud resources
+- **Never fabricate values during auto-fill** — fill only what you can determine deterministically (IaC) or read from an authoritative source (existing GitHub vars, cloud); leave a descriptive placeholder for everything else, and never invent secret material
 
 ## JSON Config Format
 
@@ -90,7 +92,7 @@ When a value is exactly `"@remove"`, the variable or secret will be **deleted** 
 
 ## Init mode
 
-When the first argument is `init` (or when no arguments are provided), scan a project's codebase to discover which GitHub environment variables and secrets it expects, then write `.github/env-config.json` with placeholder values.
+When the first argument is `init` (or when no arguments are provided), scan a project's codebase to discover which GitHub environment variables and secrets it expects, then write `.github/env-config.json` — auto-filling as many real values as possible (from existing GitHub variables, infrastructure-as-code naming, and read-only cloud lookups) and using descriptive placeholders only for what cannot be determined.
 
 ### Init 1. Resolve project path
 
@@ -120,23 +122,52 @@ Scan these sources in order, collecting variable and secret names per environmen
 3. **Infrastructure-as-code files** (`**/*.tf`):
    - Look for `var.<NAME>` references that are fed from GitHub variables (e.g. variables passed via `-var` in workflow files) and add them to `variables`.
 
-### Init 3. Assign placeholder values
+### Init 3. Resolve values — best-effort auto-fill, placeholder fallback
 
-For each discovered entry, assign a sensible placeholder:
+For every discovered variable and secret, try to resolve a **real value** before falling back to a placeholder. Fill only values you can determine deterministically or read from an authoritative source; **never guess secret material and never fabricate a value**. Resolve in this order, per environment:
 
-- **Variables**: use `"<VARIABLE_NAME>"` as placeholder (e.g. `"<WEBAPP_NAME>"`)
-- **Secrets discovered as file-valued** (source 2, `@file:` pattern): use `"@file:./secrets/<env>/<filename>"`
-- **Other secrets**: use `"<SECRET_NAME>"` as placeholder (e.g. `"<DEPLOY_TOKEN>"`)
+**a. Already-configured GitHub values.** Query existing values first so a re-init never blanks them:
 
-If no environments were detected, default to `qa` and `prod`.
+```bash
+gh variable list --repo <owner/repo> --env <env>
+gh variable list --repo <owner/repo>            # repo-level
+```
 
-If a variable or secret appears in workflows without a specific environment context (e.g. referenced in a job with no `environment:` field), include it in **all** detected environments.
+Use any existing value verbatim. Secrets cannot be read back (names only), so never try to fill a secret from GitHub.
+
+**b. Infrastructure-as-code (Terraform, Bicep, …) — resource names and URLs.** Read the IaC to learn the project's naming convention and per-environment inputs, then derive resource-name variables deterministically:
+
+- Read the per-environment var files (e.g. `*.tfvars`) for the inputs that drive names — commonly a `project_name` / `env` / `index` triplet.
+- Read the resource definitions (e.g. `main.tf`, modules) for the name expressions, e.g. `"<prefix>${project}${component}${env}${index}"`.
+- Substitute the per-env inputs into those expressions to produce concrete names (web app, resource group, container registry, container app, storage, static-site project, …) and any URLs built from them (e.g. `https://<webapp>.azurewebsites.net`).
+
+Some IaC inputs are *sourced from* the very GitHub variables you are setting (circular) — resolve those from the cloud in step (c), not from IaC.
+
+**c. Cloud provider (read-only) — identity and connection values.** If the matching cloud CLI is authenticated, read values that only exist post-deploy. **Read only — never create, modify, or delete cloud resources.** Typical Azure examples (adapt to whichever provider the project uses):
+
+- **App-registration client IDs / API scopes**: `az ad app list --filter "startswith(displayName,'<name-prefix>')" --query "[].{name:displayName, appId:appId}"`. The frontend app-reg's `appId` → the SPA client-id variable; the backend app-reg's `appId` combined with the scope value defined in IaC → the API-scope variable (e.g. `api://<backend-appId>/<scope>`).
+- **Telemetry / App Insights connection strings**: find the instance (`az resource list --resource-type microsoft.insights/components`) then read `az resource show ... --query properties.ConnectionString`.
+- **Deployed app settings** can confirm values: `az webapp config appsettings list ...`.
+
+Match resources to environments by name **and** by tenant/subscription — different environments may live in different tenants or subscriptions (e.g. a sandbox tenant for `qa`, the company tenant for `prod`). Switch context per env (`az account set --subscription ...`) and read each environment from where it actually lives. If an environment's resources aren't found in any accessible context, say so and leave placeholders — do not invent values.
+
+**If a cloud CLI needs interactive sign-in** (Conditional Access → `InteractionRequired`) and the normal browser flow hangs, use **device-code** login (`az login --tenant <id> --use-device-code`): it prints a code the user enters in a browser and does not depend on a localhost redirect. Run it in the background, relay the code to the user, and continue once it completes. Never block on the hanging browser-redirect flow; if a prior attempt is wedged, kill the stuck `az`/`python` login process before retrying.
+
+**d. Placeholder fallback.** For anything not resolved above, assign a placeholder — and make it describe *where the real value comes from* rather than a bare token:
+
+- **Variables**: `"<WEBAPP_NAME>"`, or better `"<from terraform output ... after infra-apply (qa)>"`.
+- **File-valued secrets** (source 2, `@file:` pattern): `"@file:./<path>/<filename>"` — prefer pointing at the project's existing per-env config files if they exist, otherwise the default `./secrets/<env>/<filename>`.
+- **Other secrets**: `"<SECRET_NAME>"` — never a fabricated value.
+
+**Company-global / inherited values.** If a referenced variable or secret is managed at the **org level** (inherited by every repo) or is otherwise a shared company secret (service-principal credentials, cloud API tokens), do not set it per-repo — omit it from the config and note it in the summary. When unsure whether something is shared, ask the user rather than guessing.
+
+If no environments were detected, default to `qa` and `prod`. If a variable or secret appears in workflows without a specific `environment:` context, include it in **all** detected environments.
 
 ### Init 4. Write the config file
 
 Write the generated JSON to `<project-path>/.github/env-config.json`.
 
-Before writing, show the user a preview of the generated JSON and the output path. Ask for confirmation before writing.
+Before writing, show the user a preview of the generated JSON and the output path. In the preview, clearly distinguish **auto-filled** values from remaining **placeholders** (e.g. a short `Filled N, placeholder M` line per environment) and state where the filled values came from (existing GitHub / IaC / cloud). Ask for confirmation before writing.
 
 (The file-already-exists check happens in Init 1 — by this step the file is guaranteed not to exist.)
 
@@ -163,10 +194,12 @@ After writing, print:
 Config written to <path>/.github/env-config.json
 
 Next steps:
-  1. Fill in the placeholder values (search for < and >)
+  1. Fill in any remaining placeholder values (search for < and >)
   2. For @file: secrets, place the actual files at the referenced paths
   3. Apply with: /repo-git-env apply
 ```
+
+If every value was auto-filled, say so and note that only secrets / genuinely post-deploy values remain (if any).
 
 ---
 
