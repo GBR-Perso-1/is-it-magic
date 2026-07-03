@@ -166,9 +166,34 @@ Options:
 
 If the selection contains a **plan/apply pair** (detected in step 3), the gate must be split — and this split **always applies, even on a direct fully-specified invocation** (it is a safety review of plan output, not a routine confirmation):
 
-- First gate: confirm the `plan` workflow only.
-- After plan completes (poll `gh run list` until status is `completed`), show plan results and ask a **second** gate to confirm the `apply` workflow.
+- **First gate:** confirm the `plan` workflow only.
+- **After the plan run completes** — poll `gh run list --workflow=<plan-file> --repo <TARGET_REPO> --limit 1` until status is `completed`:
+  1. Resolve the run id:
+     ```
+     gh run list --workflow=<plan-file> --repo <TARGET_REPO> --limit 1 --json databaseId,conclusion -q '.[0]'
+     ```
+  2. **If `conclusion` is not `success`** (failure, cancelled, timed out) → do **not** offer apply. Report the failed plan run URL and **stop**.
+  3. Fetch the plan log and **analyse it** (see **Plan analysis** below):
+     ```
+     gh run view <run-id> --repo <TARGET_REPO> --log
+     ```
+  4. Present the analysis verdict, then ask the **second** gate to confirm the `apply` workflow.
 - Never auto-chain plan → apply without the second gate.
+
+**Plan analysis.** From the fetched plan log, extract and summarise the proposed changes so the user gets a verdict instead of a raw log. This is Terraform-oriented — adapt to whatever IaC tool the plan actually uses (Terraform, OpenTofu, Pulumi, Bicep/ARM what-if, CloudFormation change set):
+
+- **Change summary** — the headline line (e.g. `Plan: N to add, M to change, K to destroy`, or `No changes`). Report the counts.
+- **Destroys & replacements** — resources marked `will be destroyed`, or `-/+ ... must be replaced` / `# forces replacement`. List each by resource address. These are the highest-risk items.
+- **Security-sensitive changes** — IAM roles/policies, security groups / firewall rules, public-access or ACL changes, secrets, Key Vault / KMS access. Flag any that appear.
+- **Errors or warnings** surfaced in the plan output.
+
+Then present one verdict line:
+
+- ✅ **Looks good** — only additions and in-place updates; no destroys, replacements, or security-sensitive changes.
+- ⚠️ **Review needed** — one or more destroys, replacements, or security-sensitive changes; list them explicitly so the user can weigh them.
+- ❌ **Do not apply** — the plan errored, was truncated beyond use, or produced no valid plan.
+
+State plainly that this is an **advisory summary parsed from the plan log**, not a guarantee — the user makes the final call at the second gate. If the log is truncated or the plan format is unrecognised, say so and fall back to showing the tail of the raw plan output rather than inventing a verdict.
 
 If any workflow's resolved environment is `prod`, present it prominently in the gate text — but do not require a second prompt unless the user has configured one. The `AskUserQuestion` itself is the prod gate.
 
