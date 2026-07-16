@@ -32,3 +32,17 @@ Infrastructure is never referenced by Application or Domain.
 - Controllers stay thin — delegate to the mediator.
 - Query → DTO projection inside the query (single SQL round-trip). Load-then-map only for a polymorphic hierarchy where a shared projection would force formula duplication.
 - Extract shared logic into services — no cross-handler duplication.
+
+## Testing Policy
+
+Domain and Application changes — entities, domain rules, command/query handlers, and validators —
+are developed test-first (RED → GREEN):
+
+1. The developer scaffolds the signatures/stubs needed (handler shells, validator shells, entity/method
+   signatures) — compiling, but with no real behaviour.
+2. The test-writer derives tests from the architect's Test Strategy and the requirements, runs them, and
+   confirms true RED — every test fails because the behaviour is missing, not because of a compile error
+   or a wrong assumption about the stub.
+3. Only once RED is confirmed does the developer implement the real behaviour, to GREEN.
+
+**Governed layers**: Domain, Application

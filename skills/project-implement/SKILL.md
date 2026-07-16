@@ -71,45 +71,74 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
      - `I'll clarify — here are my answers` *(the user provides clarification via the free-text "Other" input)*
      - `Start over with different requirements`
      Relay the user's clarification answers to the architect agent via `SendMessage`, instructing it to revise the plan. Repeat step 2 until the section contains `None`.
+3. **Test-first policy check** — determine whether this change is governed by a test-first (RED→GREEN) policy:
+   - Read `.claude/CLAUDE.md`. If it is absent, or has no `## Stack Conventions` section → `TEST_FIRST_ACTIVE = false`; proceed to Phase 2 unchanged.
+   - For each `@./conventions/<B>.md` import line under `## Stack Conventions`, resolve to `.claude/conventions/<B>.md` and read it if it exists.
+   - For each bundle read, check for a `## Testing Policy` heading. If present, extract the `**Governed layers**:` comma-separated list into `GOVERNED_LAYERS` (deduplicated, case-insensitive, across all bundles).
+   - If `GOVERNED_LAYERS` is empty → `TEST_FIRST_ACTIVE = false`; proceed to Phase 2 unchanged.
+   - Otherwise, collect the distinct `Area / Layer` value per step from the architect's `## File Changes` section as `CHANGE_SURFACE`.
+   - `TEST_FIRST_ACTIVE = true` iff any `CHANGE_SURFACE` entry case-insensitively contains (or is contained by) any `GOVERNED_LAYERS` entry. Record the files of matching steps as `MATCHED_FILES`; all other plan files as `OTHER_FILES`.
+   - If `TEST_FIRST_ACTIVE` → print a one-line status note: *"Applying test-first policy (RED→GREEN) for: `<matched layers>`."* No `AskUserQuestion` gate — this policy is automatic, not a user decision point.
+   - **Default**: `TEST_FIRST_ACTIVE` starts `false` and is only ever set `true` by this step. Any entry into Full mode that skips this step inherits `false`.
 
 ### Phase 2 — Implementation (Developer Agent)
 
-3. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/developer.md`.
-   - Pass it the **architecture plan** and the **original requirements**.
-   - Instruct it to implement all changes described in the plan, then **run the project's test suite inline** before returning (using the project's own test command, detected from its toolchain). It should report which tests passed, failed, or were skipped — this is a quick smoke check, not a full test pass.
-4. Wait for the developer agent to complete. Collect its summary of changes made and the inline test results.
+4. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/developer.md`.
+   - **`TEST_FIRST_ACTIVE = false`** — pass it the **architecture plan** and the **original requirements**. Instruct it to implement all changes described in the plan, then **run the project's test suite inline** before returning (using the project's own test command, detected from its toolchain). It should report which tests passed, failed, or were skipped — this is a quick smoke check, not a full test pass.
+   - **`TEST_FIRST_ACTIVE = true`** — pass it the **architecture plan** and the **original requirements**, plus an instruction to scaffold-only `MATCHED_FILES` (compiling signatures/stubs, no real behaviour) while implementing `OTHER_FILES` fully, in the same pass. Do **not** run the inline smoke-check against the stubbed area — RED confirmation happens in Phase 3.
+5. Wait for the developer agent to complete. Collect its summary of changes made (and, when `TEST_FIRST_ACTIVE` is `false`, the inline test results).
 
 ### Phase 3 — Testing (Test Agent)
 
-5. If the developer's inline test run from Phase 2 showed failures unrelated to missing test coverage (i.e. source bugs), pass the failures back to the **developer agent** via `SendMessage` to fix them before proceeding. Skip directly to Phase 4 if the inline run was clean.
+6. Branch on `TEST_FIRST_ACTIVE` (determined in Phase 1):
 
-6. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/test-writer.md`.
-   - Pass it: (1) the **original requirements**, (2) the **Test Strategy section** from the architect's plan.
-   - The test-writer derives test scenarios from the requirements — not from what the developer coded.
-7. Evaluate the test report:
-   - **All pass** → proceed to Phase 4.
-   - **Failures due to source bugs** → pass the failing test details back to the **developer agent** via `SendMessage` to fix. Then re-run Phase 3 (spawn a fresh test-writer agent).
-   - **Maximum 2 iterations** of the dev↔test loop. If tests still fail after 2 rounds, present via `AskUserQuestion`:
-     - `Continue iterating`
-     - `Skip failing tests and proceed to review`
-     - `Stop here — I'll fix manually`
+   **`TEST_FIRST_ACTIVE = false`** — unchanged dev↔test loop:
+   - If the developer's inline test run from Phase 2 showed failures unrelated to missing test coverage (i.e. source bugs), pass the failures back to the **developer agent** via `SendMessage` to fix them before proceeding. Skip directly to Phase 4 if the inline run was clean.
+   - Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/test-writer.md`. Pass it: (1) the **original requirements**, (2) the **Test Strategy section** from the architect's plan. The test-writer derives test scenarios from the requirements — not from what the developer coded.
+   - Evaluate the test report:
+     - **All pass** → proceed to Phase 4.
+     - **Failures due to source bugs** → pass the failing test details back to the **developer agent** via `SendMessage` to fix. Then re-run Phase 3 (spawn a fresh test-writer agent).
+     - **Maximum 2 iterations** of the dev↔test loop. If tests still fail after 2 rounds, present via `AskUserQuestion`:
+       - `Continue iterating`
+       - `Skip failing tests and proceed to review`
+       - `Stop here — I'll fix manually`
+
+   **`TEST_FIRST_ACTIVE = true`** — RED-confirmation sub-flow, then the GREEN dev↔test loop:
+   a. Spawn a fresh test-writer agent. Pass it: (1) the **original requirements**, (2) the **Test Strategy section**, (3) `MATCHED_FILES` as the stub-only file list. It classifies each result as PASS / RED-expected / test-issue (its normal retry allowance) / scaffold-defect.
+
+   Read the test-writer's **RED Confirmation** verdict line directly — do not re-derive it from the per-test table. Evaluate in this order (first match wins):
+   - Any `OTHER_FILES` row is Fail (source bug) → go to (b), regardless of verdict.
+   - Verdict `SCAFFOLD_DEFECT` → go to (c).
+   - Verdict `CONFIRMED_RED` → proceed to (d).
+   - Verdict `n/a` should not occur on this path — if seen, treat as `SCAFFOLD_DEFECT` (go to (c)).
+
+   b. If any result is Fail (source bug) against a file in `OTHER_FILES` (already fully implemented by Phase 2, not a `MATCHED_FILES` stub) → this is a genuine bug, unrelated to RED-confirmation. Route it exactly as the `TEST_FIRST_ACTIVE = false` flow's source-bug path: `SendMessage` to the developer to fix, then repeat (a) with a fresh test-writer. This consumes one iteration of the same Phase-3 dev↔test loop counter used at step (e) — max 2 total, combined across (b) and (e). If this shared counter is exhausted during the RED round (two `OTHER_FILES` fix cycles before RED is confirmed), (e)'s GREEN verification is skipped and the `AskUserQuestion` fallback fires immediately on the first GREEN attempt — an accepted safety valve, since a change needing two or more `OTHER_FILES` fixes before RED is confirmed is already unhealthy.
+   c. **Any scaffold-defect** → `SendMessage` the same developer agent to correct the stub signatures only (no behaviour change), then repeat (a) with a fresh test-writer agent. Cap this scaffold-fix sub-loop at **2 attempts**, tracked separately from and never counted against the GREEN loop's max-2 cap. On exhaustion, present via `AskUserQuestion`:
+      - `Continue adjusting the stub signatures`
+      - `Skip test-first for this change and implement directly`
+      - `Stop here — I'll fix manually`
+   d. `SendMessage` the same developer agent instance with the RED report and the Test Strategy, instructing it to implement `MATCHED_FILES` to GREEN.
+   e. Spawn a fresh test-writer agent to verify GREEN. Evaluate using the exact same rules as the `TEST_FIRST_ACTIVE = false` bullet above:
+      - **All pass** → proceed to Phase 4.
+      - **Failures due to source bugs** → `SendMessage` to the developer to fix, then repeat (e) with a fresh test-writer.
+      - **Maximum 2 iterations total** of this Phase-3 dev↔test loop — counting this spawn plus any (b) bug-fix cycle already consumed during the RED round. On exhaustion, present the same `AskUserQuestion` fallback: `Continue iterating` / `Skip failing tests and proceed to review` / `Stop here — I'll fix manually`.
 
 ### Phase 4 — Review (Quality + Design Agents)
 
-8. **Relevance check** — decide whether the performance reviewer is needed:
+7. **Relevance check** — decide whether the performance reviewer is needed:
     - If the change touches **executable code** (back-end logic, data access, or front-end logic) → **perf review applies**, spawn all three reviewers.
     - If the change is **docs/config-only** with no runtime code → **perf review skipped**, spawn quality + design only.
 
     (The performance reviewer is stack-aware — it reads the project's convention bundles to apply the relevant perf lens — so it self-limits when little applies.)
 
-9. Spawn reviewers in parallel (two or three per the relevance check):
+8. Spawn reviewers in parallel (two or three per the relevance check):
     - **Code-quality reviewer**: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-quality.md` — linting, style, rule compliance.
     - **Design reviewer**: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-design.md` — requirement coverage, architectural boundaries, abstraction quality, consistency.
     - **Performance reviewer** *(when runtime code changed)*: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-perf.md` — slow queries, N+1, unbounded loads, expensive loops, missing caching, front-end perf.
 
-10. Collect all reports. Record which reviewers **passed** and which **flagged issues**. Present findings to the user.
+9. Collect all reports. Record which reviewers **passed** and which **flagged issues**. Present findings to the user.
 
-11. Evaluate findings:
+10. Evaluate findings:
     - **No violations or warnings** → proceed to Phase 5.
     - **Implementation errors only** (code quality issues, bugs, style) → pass findings to the **developer agent** via `SendMessage` for corrections. Re-run Phase 3 (testing), then **re-run only the reviewers that previously flagged issues** — skip reviewers that already passed.
     - **Design errors** (wrong abstraction, domain boundary violation, requirement mismatch, missing functionality) → pass findings back to the **architect agent** via `SendMessage` to revise the plan. Re-run from Phase 2 with all reviewers reset.
@@ -120,11 +149,11 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 ### Phase 5 — Done
 
-12. Present a final summary to the user:
+11. Present a final summary to the user:
     - What was implemented (files created/modified)
     - Test results (pass/fail counts)
     - Review outcome (clean / accepted with notes)
-13. Ask via `AskUserQuestion`:
+12. Ask via `AskUserQuestion`:
     - `Commit these changes (Recommended)`
     - `I want to review the changes manually`
 
@@ -162,7 +191,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
    - `Promote to full — run tests and review now (Recommended)`
    - `Leave as draft — I'll review manually`
 
-> Selecting "Promote to full" re-enters this skill at Full mode Phase 3 (testing), carrying forward both the developer agent's output and the architect's plan from Draft Phase 1 — the test-writer needs the architect's Test Strategy section to derive test scenarios.
+> Selecting "Promote to full" re-enters this skill at Full mode Phase 3 (testing), carrying forward both the developer agent's output and the architect's plan from Draft Phase 1 — the test-writer needs the architect's Test Strategy section to derive test scenarios. `TEST_FIRST_ACTIVE` is not computed on this path (Draft mode has no Testing Policy Detection step) and defaults to `false`: Draft already implemented the behaviour directly, with no stubs, so RED→GREEN cannot be retrofitted. Phase 3 runs its `TEST_FIRST_ACTIVE = false` flow — test-writer runs once, as today.
 
 ---
 
@@ -226,7 +255,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
    - `Promote to full — add review now (run the review phase)`
    - `Leave as-is — I'll review the diff manually`
 
-> Selecting "Promote to full — add review now" re-enters this skill at Full mode Phase 4 (Review), carrying forward the developer agent's output and the test results. The test-writer does **not** re-run — the tests from Phase 2 stand.
+> Selecting "Promote to full — add review now" re-enters this skill at Full mode Phase 4 (Review), carrying forward the developer agent's output and the test results. The test-writer does **not** re-run — the tests from Phase 2 stand. (`TEST_FIRST_ACTIVE` is never referenced on this path — it re-enters at Phase 4/Review, after Phase 2/3 have already run.)
 
 **Never commit.** Always end here and leave the user to review and commit.
 
@@ -237,6 +266,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 - **Always use `SendMessage`** to continue an existing agent rather than spawning a new one (except for the test-writer, which should always be spawned fresh each iteration since it re-analyses changes from scratch).
 - **Never apply fixes yourself** — always delegate to the appropriate agent.
 - **Track iteration counts** and enforce the maximum of **2 per loop** to avoid infinite cycles.
+- Track the RED-confirmation sub-loop (scaffold-defect retries, max 2) separately from the GREEN dev↔test loop (max 2) — the initial expected RED never counts as a failed iteration of either. `OTHER_FILES` source-bug fixes during the RED round (step (b)) draw from the GREEN loop's shared max-2 budget.
 - **Only re-run reviewers that flagged issues** in iteration 2 — do not re-spawn reviewers that already passed.
 - When routing errors back to agents, include the **specific findings** and **file/line references** so the agent has full context.
 - Use British English throughout.
