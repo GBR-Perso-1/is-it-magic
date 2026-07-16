@@ -123,37 +123,57 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
       - **Failures due to source bugs** → `SendMessage` to the developer to fix, then repeat (e) with a fresh test-writer.
       - **Maximum 2 iterations total** of this Phase-3 dev↔test loop — counting this spawn plus any (b) bug-fix cycle already consumed during the RED round. On exhaustion, present the same `AskUserQuestion` fallback: `Continue iterating` / `Skip failing tests and proceed to review` / `Stop here — I'll fix manually`.
 
-### Phase 4 — Review (Quality + Design Agents)
+### Phase 4 — Review (Quality, then Design + Perf)
 
-7. **Relevance check** — decide whether the performance reviewer is needed:
+7. **Pipeline checkpoint** — retaken on every entry into Phase 4, including loop-back re-entries from the correction path (step 11). Build an out-of-band recovery point that covers tracked AND untracked files without touching the real index or working tree, and without creating any ref, stash entry, or commit on the branch:
+
+    ```bash
+    CKPT_INDEX="$(mktemp)"
+    rm -f "$CKPT_INDEX"
+    GIT_INDEX_FILE="$CKPT_INDEX" git add -A
+    TREE_SHA=$(GIT_INDEX_FILE="$CKPT_INDEX" git write-tree)
+    CHECKPOINT_SHA=$(git commit-tree "$TREE_SHA" -p HEAD -m "project-implement internal checkpoint (never for user history)")
+    rm -f "$CKPT_INDEX"
+    ```
+
+    `CHECKPOINT_SHA` is held only in the pipeline's own state for this run — never printed to the user, never written to `refs/stash` or any branch. If there is nothing to checkpoint (clean tree), skip and proceed.
+
+8. **Relevance check** — decide whether the performance reviewer is needed:
     - If the change touches **executable code** (back-end logic, data access, or front-end logic) → **perf review applies**, spawn all three reviewers.
     - If the change is **docs/config-only** with no runtime code → **perf review skipped**, spawn quality + design only.
 
     (The performance reviewer is stack-aware — it reads the project's convention bundles to apply the relevant perf lens — so it self-limits when little applies.)
 
-8. Spawn reviewers in parallel (two or three per the relevance check):
-    - **Code-quality reviewer**: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-quality.md` — linting, style, rule compliance.
-    - **Design reviewer**: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-design.md` — requirement coverage, architectural boundaries, abstraction quality, consistency.
-    - **Performance reviewer** *(when runtime code changed)*: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-perf.md` — slow queries, N+1, unbounded loads, expensive loops, missing caching, front-end perf.
+9. **Spawn reviewers** — quality first and alone, then the read-only reviewers in parallel, never overlapping:
+    - 9a. Spawn the **code-quality reviewer** (`${CLAUDE_PLUGIN_ROOT}/agents/reviewer-quality.md` — linting, style, rule compliance) alone. Wait for it to fully complete, including its Phase 3 auto-fixes, before spawning anything else.
+    - 9b. Once the quality reviewer has returned, spawn the remaining reviewers in parallel per the relevance check:
+      - **Design reviewer**: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-design.md` — requirement coverage, architectural boundaries, abstraction quality, consistency.
+      - **Performance reviewer** *(when runtime code changed)*: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-perf.md` — slow queries, N+1, unbounded loads, expensive loops, missing caching, front-end perf.
 
-9. Collect all reports. Record which reviewers **passed** and which **flagged issues**. Present findings to the user.
+10. Collect all reports. Record which reviewers **passed** and which **flagged issues**. Present findings to the user.
 
-10. Evaluate findings:
+11. Evaluate findings:
     - **No violations or warnings** → proceed to Phase 5.
     - **Implementation errors only** (code quality issues, bugs, style) → pass findings to the **developer agent** via `SendMessage` for corrections. Re-run Phase 3 (testing), then **re-run only the reviewers that previously flagged issues** — skip reviewers that already passed.
     - **Design errors** (wrong abstraction, domain boundary violation, requirement mismatch, missing functionality) → pass findings back to the **architect agent** via `SendMessage` to revise the plan. Re-run from Phase 2 with all reviewers reset.
     - **Maximum 2 iterations** of the full review loop. If issues persist, present via `AskUserQuestion`:
       - `Continue iterating`
       - `Accept current state — I'll handle remaining issues`
-      - `Stop and roll back`
+      - `Stop here — I'll review and roll back myself`
+
+      Selecting the last option ends the skill here and leaves the working tree intact for the user to review — the user may discard their own uncommitted work if they choose, but agents and the skill itself never run destructive git.
+
+12. **Checkpoint unwind** — verify the working tree still reflects the expected changes (developer's, test-writer's, and reviewer auto-fixes — cross-check against the file lists those agents reported).
+    - If intact, `CHECKPOINT_SHA` is simply discarded — it was never attached to a ref, so there is nothing further to clean up and it cannot leak into the user's history even if this step is skipped by an earlier abort.
+    - If the tree was destructively reverted, recover immediately with `git checkout "$CHECKPOINT_SHA" -- .` (the one sanctioned exception to the destructive-git ban — it restores lost work from the internal checkpoint rather than discarding anything), then report the recovery to the user before continuing.
 
 ### Phase 5 — Done
 
-11. Present a final summary to the user:
+13. Present a final summary to the user:
     - What was implemented (files created/modified)
     - Test results (pass/fail counts)
     - Review outcome (clean / accepted with notes)
-12. Ask via `AskUserQuestion`:
+14. Ask via `AskUserQuestion`:
     - `Commit these changes (Recommended)`
     - `I want to review the changes manually`
 
@@ -268,6 +288,8 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 - **Track iteration counts** and enforce the maximum of **2 per loop** to avoid infinite cycles.
 - Track the RED-confirmation sub-loop (scaffold-defect retries, max 2) separately from the GREEN dev↔test loop (max 2) — the initial expected RED never counts as a failed iteration of either. `OTHER_FILES` source-bug fixes during the RED round (step (b)) draw from the GREEN loop's shared max-2 budget.
 - **Only re-run reviewers that flagged issues** in iteration 2 — do not re-spawn reviewers that already passed.
+- The quality reviewer's auto-fix always runs to completion, alone, before any read-only reviewer starts — never parallelise a mutating reviewer with a read-only one.
+- The Phase 4 pipeline checkpoint (`CHECKPOINT_SHA`) is internal only — never mention it or its underlying git commands in user-facing output; only a recovery outcome, if triggered, is reported.
 - When routing errors back to agents, include the **specific findings** and **file/line references** so the agent has full context.
 - Use British English throughout.
 

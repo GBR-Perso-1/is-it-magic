@@ -9,6 +9,7 @@
 - Conventional commits: `type(scope): description` (feat / fix / chore / refactor) — applies to direct commits too
 - Commit directly on `main` — commits may span multiple concerns — **unless a project rule requires otherwise, in which case the project rule takes precedence**
 - Never push to remote without user confirmation
+- **Never use destructive local git commands** — `git checkout -- <path>`, `git restore`, `git reset --hard`, `git clean` are forbidden for any agent, at any time. Handle unwanted or out-of-scope edits non-destructively: report them, or undo only the agent's own edits by re-editing the specific lines back — never by reverting the working tree. The prohibition is on discarding uncommitted work or reverting the tree to a prior state; restoring lost work from an internal recovery checkpoint is not covered.
 
 ## Dependencies — No Global Installs
 
