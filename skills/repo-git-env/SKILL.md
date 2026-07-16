@@ -1,6 +1,7 @@
 ---
 name: repo-git-env
 description: Manage GitHub environment variables and secrets for a repository from a JSON config file — validates, confirms, and applies directly via gh CLI. Can also scan a project codebase to generate a config, auto-filling as many real values as it can from existing GitHub variables, infrastructure-as-code naming, and read-only cloud lookups, leaving descriptive placeholders only for what it cannot determine.
+disable-model-invocation: true
 ---
 
 Manage GitHub environment variables and secrets for a repository from a JSON config file.

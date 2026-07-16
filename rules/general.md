@@ -34,3 +34,16 @@ Never work around a missing tool with a global install or an ad-hoc fetch — ad
 - Touch only what the task requires — don't "improve" adjacent code, comments, or formatting
 - Don't refactor what isn't broken; match existing style even if you'd do it differently
 - Remove only the orphans your own change created — never delete pre-existing dead code, mention it instead
+
+## Reason Before You Act
+
+- Re-read what was actually asked before committing to an approach — don't lock onto the first idea.
+- The codebase is the source of truth, not memory — verify before asserting; never invent APIs, flags, or behaviour.
+- If a fix fails twice, stop and re-frame the problem instead of retrying variations.
+- When patching a structure that's already wrong, say it needs restructuring rather than adding the Nth patch.
+- Push back on a wrong assumption rather than agreeing to be helpful.
+
+## Understand & Verify
+
+- Read the surrounding code and match its patterns before changing it; check whether something already exists before adding it.
+- "It should work" is not done — build it, run it, and observe the behaviour you changed.
