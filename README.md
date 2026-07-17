@@ -6,8 +6,8 @@ General-purpose Claude Code plugin providing an AI-assisted development workflow
 
 | Component  | Count | Items                                                                                                                                                                                                                                                                                                                              |
 | ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Skills** | 18    | `devbox-init`, `project-investigate`, `project-decide`, `project-requirements`, `project-implement`, `project-port`, `apply-conventions`, `repo-commit`, `repo-commit-and-deploy`, `repo-git-env`, `repo-git-trigger-workflow`, `repo-security-scan`, `plugin-commit`, `plugin-implement`, `devbox-scan-secrets`, `devbox-set-context`, `az-query`, `session-to-skill` |
-| **Agents** | 16    | `architect`, `developer`, `test-writer`, `reviewer-quality`, `reviewer-design`, `reviewer-perf`, `codebase-explorer`, `repo-archaeologist`, `project-locator`, `azure-investigator`, `scanner-secrets`, `scanner-injection`, `scanner-exposure`, `scanner-devbox`, `plugin-architect`, `plugin-reviewer`                            |
+| **Skills** | 19    | `devbox-init`, `project-investigate`, `project-decide`, `project-requirements`, `project-implement`, `project-port`, `project-upgrade-npm-safe`, `project-upgrade-nuget`, `apply-conventions`, `repo-commit`, `repo-commit-and-deploy`, `repo-git-env`, `repo-git-trigger-workflow`, `repo-security-scan`, `plugin-commit`, `devbox-scan-secrets`, `devbox-set-context`, `az-query`, `session-to-skill` |
+| **Agents** | 14    | `architect`, `developer`, `test-writer`, `reviewer-quality`, `reviewer-design`, `reviewer-perf`, `codebase-explorer`, `repo-archaeologist`, `project-locator`, `azure-investigator`, `scanner-secrets`, `scanner-injection`, `scanner-exposure`, `scanner-devbox`                            |
 | **Rules**  | 6     | `general`, `csharp-lang`, `typescript-lang`, `infra-lang`, `infra-naming`, `python-lang` — synced to `~/.claude/rules/` by `/devbox-init`                                                                                                                                                                                                     |
 
 ---
@@ -95,13 +95,14 @@ This syncs all bundled plugin rules into `~/.claude/rules/` so they load globall
 | `/repo-git-env`             | Manage GitHub environment variables and secrets from a JSON config — validates, confirms, and applies via `gh`.          |
 | `/repo-git-trigger-workflow`| Trigger GitHub Actions workflows via `workflow_dispatch`. Resolves shortnames (app, api, mcp, infra, all), gated by confirmation. |
 | `/repo-security-scan`       | Scan a repo for secrets, injection vulnerabilities, and exposure risks via three parallel scanner agents. Read-only report. |
+| `/project-upgrade-npm-safe` | Upgrade a JS/TS project's npm dependencies to the latest stable with controlled risk — optionally align Node to Active LTS, bump safe minors and low-risk tooling majors, verify with the project's gates. Never commits. |
+| `/project-upgrade-nuget`    | Upgrade a .NET API's NuGet packages to their latest versions and verify with build + tests, holding back majors known-incompatible with the current framework. |
 
 ### Plugin development
 
 | Skill                | Purpose                                                                                              |
 | -------------------- | ---------------------------------------------------------------------------------------------------- |
 | `/plugin-commit`     | Bump the plugin version based on the changes, commit with a meaningful message, and push to main.    |
-| `/plugin-implement`  | Implement new or updated plugin artefacts (skills, agents, hooks, rules) with ecosystem awareness.   |
 
 ### Dev machine & context
 
@@ -128,7 +129,6 @@ Agents are spawned by skills (and can be invoked directly). Grouped by role:
 | **Implementation pipeline** | `architect`, `developer`, `test-writer`, `reviewer-quality`, `reviewer-design`, `reviewer-perf` |
 | **Investigation**         | `codebase-explorer`, `repo-archaeologist`, `project-locator`, `azure-investigator` |
 | **Security scanners**     | `scanner-secrets`, `scanner-injection`, `scanner-exposure`, `scanner-devbox` |
-| **Plugin development**    | `plugin-architect`, `plugin-reviewer`                                        |
 
 ---
 

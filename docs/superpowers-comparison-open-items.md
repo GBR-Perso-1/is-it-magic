@@ -112,5 +112,4 @@ The three items below are the only ones left worth a decision.
 ## How to resume
 
 Pick one item above, then run `/project-decide` (it reads findings from conversation) or
-`/project-requirements` to spec it — then `/project-implement` (or `/plugin-implement`, since these are plugin
-artefacts) to build. Decide TDD first: it's the only item that changes a real capability.
+`/project-requirements` to spec it — then `/project-implement` to build. Decide TDD first: it's the only item that changes a real capability.

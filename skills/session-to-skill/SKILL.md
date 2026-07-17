@@ -256,6 +256,10 @@ Options:
 
 If option 2: wait for description, apply edits, re-print the Report block with a summary of changes, then re-present the same question.
 
+Once the user is satisfied with the skill, print this pointer (informational — do not gate on it, and do not require the tool to be present):
+
+> **Polish & eval (optional)**: to refine this skill's craft — triggering description, progressive disclosure — or to empirically test it, run `/skill-creator` on the written file. If the `skill-creator` plugin is not installed, skip this; the skill above is complete as-is.
+
 ---
 
 ### Phase 5 — Commit (plugin destinations only)
