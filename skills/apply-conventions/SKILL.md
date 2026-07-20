@@ -1,6 +1,7 @@
 ---
 name: apply-conventions
 description: "Inject one or more generic convention bundles (clean architecture, Vue app, …) into this project — copies the chosen bundle(s) into .claude/conventions/ and links them via @import in CLAUDE.md as guidance. Idempotent; re-run to refresh."
+disable-model-invocation: true
 ---
 
 Inject generic convention bundles into the current project so that `/project-investigate`, `/project-decide`, `/project-requirements`, and `/project-implement` (and the agents they spawn) become aware of the project's conventions. Bundles are **guidance referenced from CLAUDE.md** — not enforced rules.

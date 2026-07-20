@@ -1,6 +1,7 @@
 ---
 name: devbox-init
 description: "Set up this machine for the is-it-magic plugin — sync all plugin rules into ~/.claude/rules/ and enable favoured language LSPs in user settings. Idempotent; re-run to refresh."
+disable-model-invocation: true
 ---
 
 Set up (or refresh) this machine for use with the is-it-magic plugin. Syncs all bundled plugin rules into `~/.claude/rules/` and ensures the favoured language LSP plugins are present in the user-level `~/.claude/settings.json`. Fully idempotent — re-run at any time after a plugin update to pull in the latest rules or settings.
