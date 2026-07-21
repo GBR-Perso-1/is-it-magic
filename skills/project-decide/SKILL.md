@@ -1,6 +1,6 @@
 ---
 name: project-decide
-description: Decision layer between investigation/debug and implementation. Reads findings from the conversation, infers debt trajectory from the investigation evidence, generates 2–4 distinct solution options, evaluates each with pros/cons and effort signal, and commits to a recommended option grounded in long-term maintainability and architectural correctness. Strictly read-only — no agents, no file I/O.
+description: Decision layer between investigation/debug and implementation. Reads findings from the conversation, infers debt trajectory from the investigation evidence, weighs up to 4 distinct options — including retaining the status quo — with pros/cons and effort signal, and commits to a recommendation grounded in long-term maintainability and architectural correctness. Strictly read-only — no agents, no file I/O.
 ---
 
 ## Important rules
@@ -12,7 +12,7 @@ Read and follow all rules in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_ux-rules.md`.
 - **Read-only.** This skill must never modify source files, configuration, Azure resources, or any project artefact.
 - **No agents.** This skill operates entirely from conversation context — it spawns no sub-agents and performs no file I/O.
 - **No re-scanning.** The skill reasons over findings already present in the conversation. It does not re-run Glob, Grep, or Read operations against the codebase.
-- **Option cap.** Generate a minimum of 2 and a maximum of 4 solution options.
+- **Option cap.** Generate at most 4 options. There is no minimum: retaining the status quo is always an admissible option and may stand as the sole recommendation, so a report need not manufacture alternatives to hit a quota.
 
 ## Input
 
@@ -48,25 +48,30 @@ The skill's primary input is the **investigation or debug report already present
    - Any constraints introduced by `$ARGUMENTS` (if provided)
 
 2. Present the Problem Statement to the user and ask for confirmation via `AskUserQuestion`:
-   - Question: "Before generating options, I want to confirm the problem we are solving. Does this capture it correctly?"
+   - Question: "Before going further, I want to confirm the problem we are solving. Does this capture it correctly?"
    - Present the Problem Statement in the question text.
    - Options:
-     - `Yes — this is correct, generate options`
+     - `Yes — this is correct, continue`
      - `No — let me correct it` (user provides correction via the free-text Other input)
 
 3. If the user corrects it: incorporate their correction into the Problem Statement and proceed. Do not re-ask — one correction pass is sufficient.
 
 ---
 
-### Phase 2 — Generate solution options
+### Phase 2 — Decide whether action is warranted, then generate options
 
-Generate between 2 and 4 distinct solution options by reasoning over the confirmed Problem Statement and the findings. Options must be meaningfully different directions — not variations of the same approach.
+1. **Status-quo gate — a reasoning step, not a rendered option.** Before generating any change-options, judge whether the current state is an acceptable resting place. Reason from the findings and the same centrality / coupling / build-surface signal you will formalise in Phase 3:
+   - **Status quo is defensible** (the concern is cosmetic, isolated, or speculative, and nothing compels a change) → carry "retain the status quo / defer" into Phase 3 as the leading candidate. Generate change-options only where they genuinely illuminate the trade-off — do not manufacture them to fill a quota.
+   - **A change is plainly compelled** (correctness defect, security exposure, outage, legal or contractual obligation, or debt the assessment shows will compound) → say so in one line and proceed to options. Do not render a token "do nothing" option that does not belong.
+   - **Genuinely unclear** → treat "retain the status quo" as one admissible option alongside the change-options and let Phase 3 weigh it.
 
-**Mandatory option types** (always include both, even if the option count is 2):
-- At least one option must represent the **smallest safe change** — the minimum intervention needed to address the problem without restructuring.
-- At least one option must represent the **most structurally correct** solution — the approach that best aligns with sound design principles, as evidenced by but not limited to the conventions observed in the investigation report.
+2. Generate up to 4 distinct options by reasoning over the confirmed Problem Statement and the findings. Options must be meaningfully different directions — not variations of the same approach. Let the number and shape of the set follow the problem; do not impose a fixed template.
 
-If user framing constraints from `$ARGUMENTS` rule out a direction (e.g. "we can't touch the DB schema"), do not generate options that violate that constraint. Note the constraint in the relevant section.
+   When a change is warranted, make the span honest: surface the **smallest safe change** (minimum intervention, no restructuring) and, where it differs, the **most structurally correct** approach (best aligned with sound design principles — evidenced by, but not limited to, the conventions observed in the report), so the trade-off between them is visible. This is guidance for spanning a real change-space, not a mandate to produce change-options when none are warranted.
+
+   Retaining the status quo is always **admissible** — as a candidate and as the recommendation — and never **mandatory**. Include it when the gate points there; omit it when a change is plainly compelled.
+
+3. If user framing constraints from `$ARGUMENTS` rule out a direction (e.g. "we can't touch the DB schema"), do not generate options that violate that constraint. Note the constraint in the relevant section.
 
 For each option, produce all of the following:
 
@@ -104,12 +109,12 @@ Effort is always relative — calibrate across the full set of options generated
 
    Weight the recommendation using the Debt Trajectory Assessment:
    - **High compounding risk** (central, coupled, actively built on): the structurally correct option is the default; departing from it requires an explicit, evidence-grounded justification.
-   - **Low compounding risk** (isolated, low-touch, not a foundation for future work): the minimal-change option is defensible — but still state what debt it defers and why that is safe to carry.
+   - **Low compounding risk** (isolated, low-touch, not a foundation for future work): the minimal-change option is defensible — and, where the findings show nothing that compels a change, retaining the status quo may be the right call outright. Either way, state what debt is deferred and why it is safe to carry.
    - **Uncertain**: call it based on the available evidence and flag the uncertainty in the rationale.
 
-   **Debt deferral obligation**: If the recommended option is the conservative or smallest-change option, explicitly state (a) what technical debt it defers and (b) why that debt is acceptable given the Debt Trajectory Assessment.
+   **Debt deferral obligation**: If the recommendation is to retain the status quo or to make the smallest change, explicitly state (a) what technical debt it defers and (b) why that debt is acceptable given the Debt Trajectory Assessment.
 
-3. Select one **Recommended Option**. State it clearly with a short rationale (2–4 sentences) grounded in the evaluation lens and the Debt Trajectory Assessment.
+3. Select one **Recommended Option** — one of the generated change-options, or retaining the status quo where the gate and the assessment point there. State it clearly with a short rationale (2–4 sentences) grounded in the evaluation lens and the Debt Trajectory Assessment.
 
 4. If a different option would be preferred under specific conditions, state that conditional preference explicitly alongside the main recommendation. Frame conditions neutrally — do not imply that structural options are inherently conditional or exceptional choices.
 
@@ -165,7 +170,7 @@ Present the full Decision Report to the user. Ensure the rationale in the Recomm
 After presenting the Decision Report, ask via `AskUserQuestion`:
 
 - Question: "The Decision Report is ready. What would you like to do next?"
-- Options (exactly these four, in this order):
+- Options — these four. When the Recommended Option is a change, keep the order below with `(Recommended)` on the full-pipeline option. **When the Recommended Option is to retain the status quo**, move `Stop here` to the top and give it the `(Recommended)` tag, and drop `(Recommended)` from the implement option — recommending action would contradict the decision.
   - `Run /project-implement — full architect → dev → test → review pipeline (Recommended)`
   - `Run /project-implement — draft, increment, or quick (I'll specify which)`
   - `Run /project-requirements first — produce a formal requirements document`
