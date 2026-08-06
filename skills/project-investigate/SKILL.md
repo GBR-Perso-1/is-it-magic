@@ -1,7 +1,7 @@
 ---
 name: project-investigate
 description: >
-  Investigate a codebase or system or an idea. Three modes, chosen interactively:
+  Investigate a codebase or system or an idea. Three modes, inferred from the input (asked only when ambiguous):
   no args = ask for a question or offer full repository archaeology;
   Bug hunt = locate root cause of a defect, report only;
   Analytical = explore patterns, tradeoffs, or design.
@@ -26,7 +26,7 @@ Read and follow all rules in `${CLAUDE_PLUGIN_ROOT}/skills/shared/_ux-rules.md`.
 | Empty | Prompt the user for a question via `AskUserQuestion` before doing anything |
 | Any text | Treat as the question/symptom and proceed to Phase 0 of the appropriate mode |
 
-Mode selection (Bug hunt vs Analytical) is always done interactively in Phase 0 — never inferred from a prefix.
+Mode selection (Bug hunt vs Analytical) is inferred from the input in Phase 0 — the user is asked only when the input could plausibly be either.
 
 ---
 
@@ -79,17 +79,15 @@ When `$ARGUMENTS` is empty:
    - **Azure involved?** — infrastructure, auth, Key Vault, app registrations, Azure AD, Entra, MSAL, tenant, subscription, Static Web App, App Service, managed identity, deployments, or cloud resources
    - **Browser involved?** — URL, live app, web UI, API response in a browser, page behaviour, network requests, console errors, or anything requiring a running application
 
-3. Present the brief and ask via `AskUserQuestion`:
-   - `Looks right — continue`
-   - `Let me clarify`
+3. Infer the mode from the brief: a defect, error, or unexpected behaviour → **Bug hunt**; a question about patterns, design, performance, or how something works → **Analytical**. Present the brief and the inferred mode as plain text — do not gate on either (see *Understanding-validation gates* in `_ux-rules.md`).
 
-4. Ask via `AskUserQuestion`:
-   - Question: "Is this a bug hunt or an analytical investigation?"
-   - Options:
-     - `Bug hunt — find a defect`
-     - `Analytical — understand patterns / design`
+   Ask via a single `AskUserQuestion` call only when something is genuinely unclear:
+   - **Mode could plausibly be either** → ask: "Is this a bug hunt or an analytical investigation?" (`Bug hunt — find a defect` / `Analytical — understand patterns / design`)
+   - **Input is materially ambiguous** (missing scope, contradictory, or open to multiple plausible readings) → ask the user to confirm or correct the brief (`Looks right — continue` / `Let me clarify`)
 
-5. Based on the user's selection, proceed to **Debug Mode Phase 0.5** or **Investigate Mode Phase 0.5** respectively.
+   Merge both questions into the same call when both apply. Ask neither for a clear input.
+
+4. Proceed to **Debug Mode Phase 0.5** or **Investigate Mode Phase 0.5** per the selected mode.
 
 ---
 
@@ -117,11 +115,9 @@ Using only Glob, Grep, and Read — no agents:
 <what static analysis cannot determine>
 ```
 
-Ask via `AskUserQuestion`:
-- `This is enough — I have what I need`
-- `Go deeper — run full investigation with agents`
-
-If **"This is enough"**: end here.
+Judge whether the quick scan has resolved the question or symptom with confidence, and state the verdict in one line — do not ask:
+- **Resolved** → end here, noting the user can ask to go deeper with agents if they want more.
+- **Not resolved** (material uncertainty remains, or the limitations listed above touch the core of the question) → say why in one line and proceed to Phase 1.
 
 #### Phase 1 — Parallel investigation
 
@@ -256,11 +252,9 @@ Using only Glob, Grep, and Read — no agents:
 <what the quick scan could not determine>
 ```
 
-Ask via `AskUserQuestion`:
-- `This is enough — I have what I need`
-- `Go deeper — run full investigation with agents`
-
-If **"This is enough"**: end here.
+Judge whether the quick scan has resolved the question or symptom with confidence, and state the verdict in one line — do not ask:
+- **Resolved** → end here, noting the user can ask to go deeper with agents if they want more.
+- **Not resolved** (material uncertainty remains, or the limitations listed above touch the core of the question) → say why in one line and proceed to Phase 1.
 
 #### Phase 1 — Parallel investigation
 

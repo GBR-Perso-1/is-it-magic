@@ -43,16 +43,10 @@ Using only Glob, Grep, and Read tools — without spawning any agents — perfor
 <what could not be determined without a deeper scan — e.g. domain model detail, full feature list, internal service responsibilities>
 ```
 
-Present the Quick Context Summary to the user, then ask via `AskUserQuestion`:
+Present the Quick Context Summary to the user, then judge whether it gives enough context to brainstorm on, and state the verdict in one line — do not ask (see *Understanding-validation gates* in `_ux-rules.md`):
 
-- **Question**: "Quick scan complete. Is this enough context to start brainstorming, or do you want a deeper codebase overview first?"
-- **Options**:
-  - `This is enough — let's start brainstorming`
-  - `Go deeper — run full codebase exploration first`
-
-If the user selects **"This is enough"**: skip Phase 1 entirely. Proceed directly to Phase 2 (Brainstorming), starting at step 4 (the `AskUserQuestion` about which area to evolve). Use the Quick Context Summary as the "State of the App" context for the brainstorming conversation — do not re-run context gathering.
-
-If the user selects **"Go deeper"**: proceed to Phase 1 below, which will spawn the codebase-explorer agent.
+- **Enough context** (the Gaps listed do not touch the areas the user is likely to evolve): skip Phase 1 entirely. Proceed directly to Phase 2 (Brainstorming), starting at step 4 (the `AskUserQuestion` about which area to evolve). Use the Quick Context Summary as the "State of the App" context for the brainstorming conversation — do not re-run context gathering. Note that the user can ask for a deeper codebase exploration if they want it.
+- **Not enough** (the Gaps are material to the evolution being discussed): say why in one line and proceed to Phase 1 below, which will spawn the codebase-explorer agent.
 
 ---
 

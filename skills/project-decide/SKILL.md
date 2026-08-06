@@ -47,12 +47,14 @@ The skill's primary input is the **investigation or debug report already present
    - The affected area (layer, component, service) as evidenced by the report
    - Any constraints introduced by `$ARGUMENTS` (if provided)
 
-2. Present the Problem Statement to the user and ask for confirmation via `AskUserQuestion`:
-   - Question: "Before going further, I want to confirm the problem we are solving. Does this capture it correctly?"
-   - Present the Problem Statement in the question text.
-   - Options:
-     - `Yes — this is correct, continue`
-     - `No — let me correct it` (user provides correction via the free-text Other input)
+2. Present the Problem Statement to the user, then (see *Understanding-validation gates* in `_ux-rules.md`):
+   - **Input is a report produced in this conversation by `/project-investigate`** → proceed immediately without asking. The user already saw and approved those findings when the report was produced.
+   - **Input was pasted or supplied directly by the user** → ask for confirmation via `AskUserQuestion` only when the findings are materially ambiguous:
+     - Question: "Before going further, I want to confirm the problem we are solving. Does this capture it correctly?"
+     - Present the Problem Statement in the question text.
+     - Options:
+       - `Yes — this is correct, continue`
+       - `No — let me correct it` (user provides correction via the free-text Other input)
 
 3. If the user corrects it: incorporate their correction into the Problem Statement and proceed. Do not re-ask — one correction pass is sufficient.
 

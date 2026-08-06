@@ -25,7 +25,7 @@ ls "${CLAUDE_PLUGIN_ROOT}/conventions/"*.md
 
 ```powershell
 # Windows
-Get-ChildItem -Path "$env:CLAUDE_PLUGIN_ROOT/conventions" -Filter "*.md" -File
+Get-ChildItem -Path "${CLAUDE_PLUGIN_ROOT}/conventions" -Filter "*.md" -File
 ```
 
 Store the bundle ids as `AVAILABLE_BUNDLES`. For each, read its first `# ` heading line to use as a one-line label. If `AVAILABLE_BUNDLES` is empty, stop:

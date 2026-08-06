@@ -14,6 +14,13 @@ This skill takes no arguments. If any text is passed after the slash command, no
 
 ## Phase 0 — Resolve paths
 
+`PLUGIN_RULES_DIR`, `TARGET_DIR` and `SETTINGS_FILE` are names for the resolved literal paths — report labels, written `<NAME>` wherever they appear in printed output. They are not shell variables: nothing assigns them in the shell that runs the commands below, so writing `$PLUGIN_RULES_DIR` in a command would expand to an empty string and the path would silently collapse to a relative one.
+
+The commands below therefore use only references that genuinely resolve:
+
+- `${CLAUDE_PLUGIN_ROOT}` — a plugin-root token that Claude Code substitutes for a literal absolute path in this file's text before the skill runs. It works in any shell because by then it is no longer a variable at all. Note that `$env:CLAUDE_PLUGIN_ROOT` is **not** equivalent: it is neither the token nor a real environment variable, and expands to nothing.
+- `$HOME` (bash) and `$env:USERPROFILE` (PowerShell) — genuine environment variables. `$env:HOME` is usually unset on Windows, which is why the PowerShell commands use `USERPROFILE`.
+
 ### Step 0.1 — Resolve `PLUGIN_RULES_DIR`
 
 Set `PLUGIN_RULES_DIR` to the bundled rules directory inside the plugin:
@@ -39,8 +46,8 @@ echo "$env:USERPROFILE"
 Compute the target paths:
 
 - **Windows** (`USERPROFILE` is set):
-  - `TARGET_DIR` = `%USERPROFILE%\.claude\rules\`
-  - `SETTINGS_FILE` = `%USERPROFILE%\.claude\settings.json`
+  - `TARGET_DIR` = `$env:USERPROFILE\.claude\rules\`
+  - `SETTINGS_FILE` = `$env:USERPROFILE\.claude\settings.json`
 - **Unix** (`HOME` is set):
   - `TARGET_DIR` = `$HOME/.claude/rules/`
   - `SETTINGS_FILE` = `$HOME/.claude/settings.json`
@@ -73,12 +80,12 @@ List all `.md` files in `PLUGIN_RULES_DIR`:
 
 ```bash
 # Unix
-ls "$PLUGIN_RULES_DIR"*.md
+ls "${CLAUDE_PLUGIN_ROOT}/rules/"*.md
 ```
 
 ```powershell
 # Windows
-Get-ChildItem -Path "$PLUGIN_RULES_DIR" -Filter "*.md"
+Get-ChildItem -Path "${CLAUDE_PLUGIN_ROOT}/rules" -Filter "*.md" -File
 ```
 
 Expected files include (e.g.) `general.md`, `csharp-lang.md`, `typescript-lang.md`, `infra-lang.md`, `infra-naming.md`, `python-lang.md` — but the actual set is whatever `.md` files are present in `PLUGIN_RULES_DIR` at runtime. The glob commands above are the authoritative enumeration; the list here is illustrative only.
@@ -106,12 +113,12 @@ Create `TARGET_DIR` if it does not already exist. This is idempotent.
 
 ```bash
 # Unix
-mkdir -p "$TARGET_DIR"
+mkdir -p "$HOME/.claude/rules"
 ```
 
 ```powershell
 # Windows
-New-Item -ItemType Directory -Force -Path "$TARGET_DIR"
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\rules"
 ```
 
 If directory creation fails, stop immediately:
@@ -128,12 +135,12 @@ For each file enumerated in Step 1.1, copy it verbatim from source to target, ov
 
 ```bash
 # Unix — repeat for each file
-cp "$PLUGIN_RULES_DIR<filename>" "$TARGET_DIR<filename>"
+cp "${CLAUDE_PLUGIN_ROOT}/rules/<filename>" "$HOME/.claude/rules/<filename>"
 ```
 
 ```powershell
 # Windows — repeat for each file
-Copy-Item -Path "$PLUGIN_RULES_DIR\<filename>" -Destination "$TARGET_DIR\<filename>" -Force
+Copy-Item -Path "${CLAUDE_PLUGIN_ROOT}/rules/<filename>" -Destination "$env:USERPROFILE\.claude\rules\<filename>" -Force
 ```
 
 Track each outcome individually:
@@ -177,8 +184,9 @@ Use PowerShell or bash depending on the detected platform:
 
 ```powershell
 # Windows — read, merge, write
-$settings = if (Test-Path "$SETTINGS_FILE") {
-    Get-Content "$SETTINGS_FILE" -Raw | ConvertFrom-Json
+$settingsFile = "$env:USERPROFILE\.claude\settings.json"
+$settings = if (Test-Path $settingsFile) {
+    Get-Content $settingsFile -Raw | ConvertFrom-Json
 } else {
     [PSCustomObject]@{}
 }
@@ -187,11 +195,19 @@ if (-not $settings.enabledPlugins) {
 }
 # Add each missing key
 $settings.enabledPlugins | Add-Member -NotePropertyName '<key>' -NotePropertyValue $true -Force
-$settings | ConvertTo-Json -Depth 10 | Set-Content "$SETTINGS_FILE"
+# Reached only when KEYS_TO_ADD is non-empty: this round-trip reformats the whole document, so a
+# run where all three keys are already present must not write at all.
+# -Depth 100 because ConvertTo-Json silently flattens anything nested deeper than -Depth into a
+# string — that would corrupt the user's settings with no error raised.
+$settings | ConvertTo-Json -Depth 100 | Set-Content $settingsFile
 ```
 
 ```bash
 # Unix — read, merge, write (requires jq)
+SETTINGS_FILE="$HOME/.claude/settings.json"
+# jq cannot read a missing file, and the && chain below would then short-circuit silently —
+# leaving a fresh machine unconfigured, which is exactly the case this skill exists to serve.
+[ -f "$SETTINGS_FILE" ] || printf '{}' > "$SETTINGS_FILE"
 jq '.enabledPlugins["<key>"] = true' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
 ```
 

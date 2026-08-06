@@ -28,12 +28,16 @@ The `az-query` skill and its `_az-auth.md` shared doc ship inside this plugin. R
 ```bash
 AZ_QUERY_SKILL=""
 AZ_AUTH_DOC=""
-SKILL_CANDIDATE="$CLAUDE_PLUGIN_ROOT/skills/az-query/SKILL.md"
-AUTH_CANDIDATE="$CLAUDE_PLUGIN_ROOT/skills/shared/_az-auth.md"
+SKILL_CANDIDATE="${CLAUDE_PLUGIN_ROOT}/skills/az-query/SKILL.md"
+AUTH_CANDIDATE="${CLAUDE_PLUGIN_ROOT}/skills/shared/_az-auth.md"
 if [ -f "$SKILL_CANDIDATE" ] && [ -f "$AUTH_CANDIDATE" ]; then
   AZ_QUERY_SKILL="$SKILL_CANDIDATE"
   AZ_AUTH_DOC="$AUTH_CANDIDATE"
 fi
+# Print them: shell state does not survive between tool calls, so these values are only usable
+# if they appear in this command's output. Without them the Step 2 / Step 3 branch cannot be decided.
+echo "AZ_QUERY_SKILL=$AZ_QUERY_SKILL"
+echo "AZ_AUTH_DOC=$AZ_AUTH_DOC"
 ```
 
 ### Step 2 — Branch A: az-query skill found

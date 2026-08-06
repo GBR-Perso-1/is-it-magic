@@ -50,9 +50,11 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
    - What needs to change and where (component, layer, or file if known)
    - Expected outcome
    - Any constraints or edge cases mentioned
-6. Present the brief and confirm with the user via `AskUserQuestion`:
-   - `Looks right — proceed` *(label this as Recommended)*
-   - `Let me clarify`
+6. Present the brief as plain text, then (see *Understanding-validation gates* in `_ux-rules.md`):
+   - **Requirement arrived via a suite handoff** — the user selected a `/project-decide` handoff option, or the requirement is a recommendation or requirements document produced in this conversation by `/project-decide` or `/project-requirements` → proceed immediately without confirming; the handoff selection was the confirmation.
+   - **Cold requirement text** (typed directly or read from a file path) → confirm via `AskUserQuestion` only when it is materially ambiguous:
+     - `Looks right — proceed` *(label this as Recommended)*
+     - `Let me clarify`
 
 ---
 
