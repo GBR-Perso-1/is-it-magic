@@ -82,8 +82,26 @@ Edit in place:
 
 #### 6. Commit
 
+Stage only the plugin's own content directories — never `git add -A` or `git add .`, which would sweep in unrelated untracked files (scratch workspaces, local notes) that happen to sit in the repo.
+
+Not every plugin has every directory. Git aborts the **entire** `add` with `fatal: pathspec '<dir>' did not match any files` if even one pathspec is unmatched, staging nothing, so build the list from what actually exists:
+
 ```bash
-git -C "<REPO_ROOT>" add -- .claude-plugin/ skills/ agents/ rules/ templates/
+cd "<REPO_ROOT>"
+PLUGIN_PATHS=""
+for d in .claude-plugin skills agents rules templates hooks commands; do
+  [ -d "$d" ] && PLUGIN_PATHS="$PLUGIN_PATHS $d"
+done
+git -C "<REPO_ROOT>" add -- $PLUGIN_PATHS
+```
+
+Confirm the staged set before committing — if anything unexpected appears, stop and report it rather than committing:
+
+```bash
+git -C "<REPO_ROOT>" diff --cached --name-only
+```
+
+```bash
 git -C "<REPO_ROOT>" commit -m "<user commit message>
 
 chore: bump version to <new-version>"
