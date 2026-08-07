@@ -1,0 +1,259 @@
+# Rise way of working vs how Anthropic builds software — working base for improvement
+
+> **Purpose**: consolidated findings from confronting the full Rise/is-it-magic operating model — the
+> tooling, the doctrine, *and* the actual practice — against *"How building software is changing at
+> Anthropic"* (The Pragmatic Engineer, Gergely Orosz, 28 Jul 2026; interviews with Katelyn Lesse,
+> Jarred Sumner, Thariq Shihipar, David Hershey). This is the base to pick up, when time allows, for
+> improving both the tooling and the way of working.
+> **Date captured**: 2026-08-04. **Status**: analysis only — nothing implemented.
+> **Supersedes**: the earlier 5-move version of this document (some of its claims are retracted below).
+>
+> **Baseline**: `is-it-magic` v6.1.4 (19 skills, 14 agents, 6 rules) + `it--claude-rise-plugin`
+> (8 skills, engineering handbook ×2 variants, project-coach, Rise conventions). Operator context:
+> one lead engineer using the `investigate → decide → requirements → implement → commit → deploy`
+> suite; juniors distil the lead's way of working through the handbook + `/project-coach`.
+
+---
+
+## The operating model (as compiled from every skill and md file)
+
+Five codified layers with one doctrine running through them — plus a sixth layer that is real but
+**uncodified**:
+
+1. **Machine** — `devbox-init`, `devbox-set-context`, `devbox-scan-secrets`: reproducible workstation,
+   accounts as data.
+2. **Ambient discipline** — 6 auto-loaded rules; `rules/general.md` "Reason Before You Act" is the same
+   failure-mode doctrine as the handbook's "catch yourself" list. The discipline is encoded **three
+   times**: rules (every AI session), handbook (juniors + AI in Rise projects), constraint blocks
+   (every pipeline agent).
+3. **Project bootstrap** — `project-init`, `repo-scaffold`, conventions as layered data
+   (`apply-conventions` base + Rise overlays) consumed by deliberately stack-agnostic agents.
+4. **The lead's lifecycle** — investigate → decide → requirements → implement (4 rigour modes,
+   RED→GREEN where governed) → commit → deploy. Read-only phases strictly separated from mutating ones.
+5. **People + compounding** — handbook + coach to *manufacture* judgment in juniors; `session-to-skill`
+   to turn solved problems into skills (the Rise plugin's `fix-openapi-enum-schema` and
+   `migrate-navigation-to-static` are its visible outputs — the loop runs).
+6. **Uncodified: session-level fan-out.** The lead runs **5–10 parallel Claude Code sessions** across
+   different repos — or the same repo — so multiple `/project-implement` runs execute simultaneously.
+   This layer exists only in practice: no skill, rule, or handbook line knows about it.
+
+**Structural fact**: the junior's doctrine and the lead's automation are the same shape — handbook
+lifecycle steps 1–6 map one-to-one onto the skill suite. That self-consistency exists nowhere in the
+article, and it is what makes doctrine+tooling fixes *one* coherent move rather than two.
+
+## Verdict (one paragraph)
+
+Measured against the article: **ahead** on doctrine, transmission, and decision discipline; **at
+parity** on verification intent and on raw throughput (session-level fan-out at 5–10 matches the
+article's "running 3–10 parallel agents is a given"); **behind** on codifying that parallelism,
+protecting shared repos from it, unattended work, independent redundancy in verification, model
+allocation, and prompt-debt hygiene. The binding constraint is not parallelism — it is that **the
+harness does not know it is being run in parallel**, so it cannot protect concurrent runs from each
+other, and the handbook cannot teach the practice to the people meant to inherit it.
+
+---
+
+## Corrections — retracted claims (do not resurrect these)
+
+- **RETRACTED: "no fan-out / serialising caps throughput at one."** Wrong. Fan-out exists,
+  human-orchestrated at the session level (5–10 parallel sessions); each `AskUserQuestion` gate is a
+  multiplexing point, not a throughput block. The lead's attention is the *scheduler* — exactly the
+  article's model, with the cost the article itself names (Katelyn: context switching easier, still
+  hard). What survives is narrower: the practice is *uncodified*, *unsafe on shared repos*, and
+  *attended-only* — items A3, B1, A5 below.
+- **RETRACTED (first-pass reading): "cap-at-2 loops are a token-budget artefact."** The handbook's
+  "retry loops" failure mode independently says *if a fix fails twice, stop and reassess — the framing
+  is usually wrong*. Doctrine and automation agree. Keep the caps. But note the system **conflates
+  retries with redundancy** — an independent fresh-context second opinion is not a retry (item A4).
+- The remaining budget-driven gaps (uniform sonnet, no unattended lane) trace to one constraint the
+  article says does not apply at Anthropic: **a token budget**. Break it deliberately in one or two
+  places, not uniformly.
+
+---
+
+## What holds up — validated by the article or ahead of it (do not touch)
+
+- **The codification itself.** The article's closing question — *does this only work if you can hire
+  standout engineers?* — is answered here: Anthropic hires judgment; this system *manufactures* it
+  (handbook day-one, Socratic coach, "not yet justified" as a first-class finding). Their practices
+  are oral culture; these are versioned, installable, idempotent.
+- **Verification-weighted pipeline** (~6 of 8 agent slots in full mode) matches the article's 85/15
+  implementation/verification split. `test-writer` derives assertions from requirements, never the
+  implementation — the failure mode of AI-written tests, which the article never even names.
+- **RED→GREEN test-first policy** is the *encoded* form of Jarred's sharpest practice (a test must
+  fail on the unpatched build and pass on the patched one). His is a habit; this is policy.
+- **Planning proportional to complexity** — full/draft/quick/increment + `project-decide` encode
+  Katelyn's platform/product planning split. `project-decide` (status quo first-class, debt
+  trajectory from evidence) has **no equivalent in the article at all**.
+- **The "catch yourself" failure-modes list** — an explicit written model of AI biases injected into
+  the AI's own context. Jarred holds the equivalent in his head; this writes it down and ships it.
+- **Compounding loop** — `session-to-skill` compounds at knowledge level; the article's automations
+  compound only at CI level.
+- **Priors get re-tested** — 82 commits in 4 months, a reverted worktree mode, retired docs: the
+  "keeps testing assumptions" trait the article attributes to standouts.
+
+## Deliberate divergences — fair given the context (do not "fix")
+
+- **"Read and defend every line" vs Jarred's "trust the code without the ability to read it all"** —
+  a genuine philosophical fork; the junior-default side is correct here. Line-level defensibility is
+  the pedagogy while judgment is being manufactured, and the article's own caveat (copying Anthropic
+  without their hiring bar "could well result in disappointment") protects it. The fair version has a
+  boundary though — see B2.
+- **Human gates everywhere** — the mechanism by which the lead's judgment and accountability enter the
+  loop. Fair; the issue is only that gated lanes are the *only* lanes (A5).
+- **Direct-to-main, no PR machinery** — theirs coordinates 100+ PRs/day across humans and bots; at 1–2
+  humans per repo it is ceremony. Fair — but an unattended lane needs a PR to land in, so this is
+  coupled to A5. (Handbook already parameterises it: "follow the project's branching policy".)
+- **Deterministic state-machine skills** vs "we deleted 80% of the prompt" — determinism is what
+  guarantees a junior gets *the lead's* workflow, not the model's mood; consistency is a feature when
+  the artifact is a transmission mechanism. Fair **conditional on** the prompt-debt ritual (C1).
+- **Team-shape findings (two-pizza, max-2-per-project) and fuzzing** — no mapping to a solo-lead
+  portfolio of line-of-business apps. N/A.
+
+---
+
+## Backlog — Track A: tooling
+
+### A1. Unpin the model on the reasoning agents — **DONE 2026-08-07**
+
+All 14 agents carried `model: sonnet`, so none inherited the session model — running Opus at the
+orchestrator bought nothing below it. The spend is lowest exactly where the article locates the value
+(Jarred: review "catches bugs that would take me an hour… the caveat is that it's expensive").
+Sharper still in this context: the reviewers are also **teaching artifacts** — a junior promoting
+draft→full is being shown what good review looks like; weak reviewers teach weakly.
+
+**Landed**: `architect`, `reviewer-design`, `reviewer-perf` set to `model: inherit` (the explicit form
+of the documented default — legible as a choice, and a one-word repin). All 11 others stay `sonnet`.
+
+**Cost reasoning behind the boundary** (token budget is the binding constraint here — see Corrections):
+per-run spend ranks `developer` ≫ `test-writer` > `architect` > the read-only reviewers. The two
+reviewers are diff-scoped, single-pass, capped at 2 runs by the review loop, and **only ever spawn in
+full mode** — so unpinning them has no blast radius outside the mode already chosen for rigour.
+`architect` is the deliberate risk: it also runs in **draft** (the cheap POC lane) and its cost scales
+with repo size, not diff size. Accepted with a stated fallback — repin if draft-mode spend bites; the
+tighter fix if so is a full-mode-only model override at the spawn site in `project-implement`, leaving
+the frontmatter pinned.
+
+**Resolved**: `test-writer` stays pinned — it is spawned *fresh* up to 3× per RED→GREEN run (no context
+reuse), making it the pipeline's worst cost multiplier, and deriving assertions from requirements is
+its most mechanical duty.
+
+**Amplifier to watch**: 5–10 parallel sessions multiply any per-run delta. Trial before it becomes the
+default posture.
+
+### A2. Wire the security scanners into the implement pipeline *(small — closer to an oversight)*
+
+`repo-security-scan` has three parallel scanner agents that `project-implement` never calls; security
+review is opt-in on a pipeline that reviews quality/design/perf automatically. Article contrast: 11
+scanner runs on one rewrite; verification default-on and repeated.
+**Move**: spawn the three scanners from Phase 4 alongside design + perf (read-only — composes with the
+"quality alone first, then read-only in parallel" rule). **Decide**: full mode only or also
+`increment`; do findings route to the developer agent or gate to the user?
+
+### A3. Make same-repo parallel sessions safe *(small→medium — practice already violates assumptions)*
+
+Two `/project-implement` runs in one repo **see each other's edits**: every verification agent scopes
+itself by `git diff` + untracked files, so session B's half-finished work lands in session A's
+test-writer and reviewer scope; the Phase 4 checkpoint (`git add -A` via temp index) snapshots the
+*union* of both sessions and a recovery restore would resurrect the other session's WIP; inline test
+runs execute against a tree containing the other session's changes. This is Katelyn's "agents stepping
+on each other's toes", verbatim. Worktrees were already tried and reverted (`407227c`; Jarred also
+found them slow) — his alternative was orchestrator-owns-writes.
+**Move (cheapest honest fix)**: a stated rule — *parallel sessions on one repo must own disjoint
+paths* — plus optionally a per-run scope declaration the diff-based agents filter against.
+**Open**: where does the scope declaration live (argument, `.claude/` file, env)?
+
+### A4. Add independent redundancy where it pays *(medium)*
+
+Distinct from retry caps (which stay — doctrine backs them). Redundancy = a fresh-context independent
+pass that catches what the first *structurally* couldn't see. Article: two AI reviewers arguing on the
+PR, 11 scanner runs, fresh-context blast-radius judges. Today: every reviewer runs exactly once.
+**Move (options, pick one to trial)**: a second fresh-context design review on full mode; scanner
+re-run after correction loops; an adversarial verify pass on reviewer findings.
+**Bound**: redundancy only where an oracle or a cheap judge exists — don't double-spend on prose.
+
+### A5. Unattended lane experiment *(medium — the accurate half of the retracted fan-out claim)*
+
+5–10 attended sessions still all need the lead present; nothing runs from an issue, overnight, or
+while away — the article's "agents running in the background or cloud" half. The article's closest
+analogue to Rise is **Bun: a small team with a wide surface** (~14 Rise repos), and their answer to
+that ratio was issue → repro container → fix container → PR, auto-rejected without a test.
+**Move**: one GitHub Action running Claude on issue/PR events, in **one** repo, as an experiment — not
+a plugin skill until it earns its place. **Bound**: propose-PR only, never merge; needs a PR landing
+convention while attended work stays direct-to-main.
+**Trust bound (from the handbook)**: unattended output is only admissible where an oracle other than a
+reading human judges correctness — a trusted suite, a spec, a mechanical transformation. Jarred's
+64-agent rewrite qualified precisely because Bun's language-independent test suite was the oracle.
+
+## Backlog — Track B: doctrine / way of working
+
+### B1. Codify the parallel-session practice — the distillation gap *(the biggest-leverage doctrine edit)*
+
+The most Anthropic-like part of the actual practice (5–10 parallel sessions) appears **nowhere** in
+the handbook, coach, or rules. Handbook §0 teaches "an AI at your side" — singular, serial. Juniors
+are distilling how the lead worked in 2025, not how the lead works now; and when tooling moves (A3,
+A5), the handbook must move in the same commit or the distillation loop propagates the old model.
+**Move**: rewrite handbook §0 around the multi-session reality — what parallelises (independent,
+oracle-checkable work) vs what doesn't (design, exploration); how to scope sessions so they don't
+collide (ties to A3); how to review N concurrent outcomes; the context-switching cost (the article
+names it honestly). Make `/project-coach` aware of it.
+
+### B2. Add a tiered trust model to handbook §0 *(keeps the junior default, names the boundary)*
+
+"I can explain and defend every line" stays the default — but it currently has **no escape valve**,
+and it outright forbids work like the Bun rewrite (mechanical bulk change, oracle-verified, nobody
+reads 500K lines). The hinge is already written in handbook §1.2: *"reviewability comes from
+legibility, not size."*
+**Move**: two named tiers — line-level defensibility for hand-directed feature work; **oracle-level**
+defensibility for mechanical/bulk work, with qualifying gates listed (trusted suite + automated
+review + scanners). Explicitly *not* a licence to skim feature work.
+
+### B3. Promote testing from a checkbox to a section *(doctrine lags the tooling here)*
+
+The handbook has one checklist line ("tests pass, and I added/updated tests"). The tooling already
+encodes fails-before/passes-after (RED→GREEN for governed layers) — **the doctrine never teaches it**.
+And handbook §2.6's "invite others" implies human reviewers only: a junior reading it wouldn't know
+the AI reviewer agents exist — a seam between the two plugins, not a missing capability.
+**Move**: a testing section teaching the fail-first proof, and a review step that names the automated
+reviewers as the pass *before* "invite others".
+
+### B4. Legitimise the spike *(the word appears nowhere in the doctrine)*
+
+Handbook §2.1 keeps understanding strictly read-only; Katelyn says the opposite is now the fast path
+(*"prototyping itself was more about understanding the requirements"*; stub service + shadow traffic,
+interfaces ironed out while building underneath). Throwaway code is the thing AI made nearly free.
+**Move**: add the spike as a deliberate, disposable mode — with the guard that spikes are deleted,
+never silently promoted (that guard is *why* it was left out for juniors; write it down instead).
+
+### B5. Single-source the triple-encoded doctrine *(maintenance — drift is already observable)*
+
+The same principles live in `rules/general.md`, two handbook variants, and agent constraint blocks —
+synchronised by memory. Observed drift: the `.claude.md` handbook variant has the full "catch
+yourself" list which the human variant lacks; the human variant has richer §1.2 (dead-code
+discipline, the legibility argument) and a §9 rule the AI variant drops (*"infrastructure changes
+deploy through CI, not by hand"*); ~~the plugin `CLAUDE.md` says 18 skills / 16 agents — actual counts
+are 19 / 14~~ **(done 2026-08-07 — counts corrected to 19 / 14)**.
+**Move**: decide the single source; generate or checklist-verify the derived copies.
+
+## Backlog — Track C: recurring ritual
+
+### C1. Prompt-debt ritual per model generation
+
+`project-implement` is a ~300-line state machine (nested loop counters, a shared max-2 budget across
+two sub-loops, five RED/GREEN verdict cases, `commit-tree` plumbing) — four months of steadily
+accumulating determinism. Thariq deleted **80%** of the Claude Code system prompt because the model
+got smarter: *"you have to revisit any assumptions you have made because it can change with a new
+model generation."* Determinism stays (see "fair" above) — but it must be re-earned per generation.
+**Move**: on each model generation, halve the biggest skill, run both versions against the same
+requirement, compare, keep the cut if it holds.
+
+---
+
+## Not on the list (considered, deliberately excluded)
+
+- **PR-based flow with competing reviewers at scale (Claude + CodeRabbit)** — exists to coordinate
+  100+ PRs/day across many humans and bots; not the constraint here. Revisit only if A5 lands.
+- **Fuzzing** — high value for a runtime/parser like Bun; weak fit for line-of-business apps.
+- **HTML over Markdown for reports** (Thariq's preference: richer, easier to share) — collides with
+  the standing "always work with md" rule. Parked as a preference question, not an engineering gap.
+- **Team-shape changes** — no team to reshape.

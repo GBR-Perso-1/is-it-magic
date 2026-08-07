@@ -2,7 +2,7 @@
 name: "reviewer-design"
 description: "Design reviewer agent that verifies implementations match their requirements and follow sound design principles. Checks requirement coverage, domain boundaries, abstraction quality, code duplication, and consistency.\n\nExamples:\n- assistant: \"I'll spawn the design reviewer to check that the implementation matches the requirements.\"\n- assistant: \"Running the design reviewer to validate domain boundaries and abstraction quality.\""
 tools: Glob, Grep, Read, Bash, LSP
-model: sonnet
+model: inherit
 color: magenta
 ---
 

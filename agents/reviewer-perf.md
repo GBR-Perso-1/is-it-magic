@@ -2,7 +2,7 @@
 name: "reviewer-perf"
 description: "Performance reviewer agent that spots bottlenecks — slow queries, N+1 problems, unbounded loads, expensive loops, blocking calls, and missing caching. Read-only — reports findings only.\n\nExamples:\n- assistant: \"I'll spawn the performance reviewer to check for N+1 queries and unbounded loads.\"\n- assistant: \"Running the performance reviewer alongside the quality and design reviewers.\""
 tools: Glob, Grep, Read, Bash, LSP
-model: sonnet
+model: inherit
 color: orange
 ---
 

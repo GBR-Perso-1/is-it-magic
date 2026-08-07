@@ -2,7 +2,7 @@
 name: "architect"
 description: "Software architect agent that turns requirements into concrete implementation plans. Reads the codebase, analyses the requirement, and produces a step-by-step plan with specific files, data model changes, and API changes.\n\nExamples:\n- assistant: \"Let me spawn the architect agent to design an implementation plan for this requirement.\"\n- assistant: \"I'll use the architect agent to break this feature down into concrete steps.\""
 tools: Glob, Grep, Read, Bash, WebFetch, WebSearch, LSP
-model: sonnet
+model: inherit
 color: blue
 ---
 
