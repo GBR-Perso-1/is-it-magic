@@ -100,13 +100,16 @@ Use the `if ... then ... fi` form inside the loop, **not** `[ -d "$d" ] && PLUGI
 
 The `-n` guard exists because `git add --` with no pathspec is a silent no-op that exits `0`, which would otherwise produce an empty commit rather than an error.
 
-Keep this directory list in step with the plugin's actual content directories. A directory that holds real plugin content but is missing from the list fails the same silent way: the commit succeeds carrying only the version bump, and the change it was meant to ship is left behind in the working tree.
+The list cannot be exhaustive — plugins name their content directories differently (`conventions/` in one, `rise-conventions/` in another), and a directory holding real plugin content but missing from the list fails the same silent way: the commit succeeds carrying only the version bump, while the change it was meant to ship stays behind in the working tree. Add the missing directory when you meet one, and rely on the completeness check below to catch it.
 
-Confirm the staged set before committing — if anything unexpected appears, stop and report it rather than committing:
+Confirm the staged set before committing — in **both** directions:
 
 ```bash
-git -C "<REPO_ROOT>" diff --cached --name-only
+git -C "<REPO_ROOT>" diff --cached --name-only   # what will be committed
+git -C "<REPO_ROOT>" diff --name-only            # tracked, modified, NOT staged
 ```
+
+The first catches unexpected additions. The second is the completeness check and matters more: any file it lists is a tracked change the pathspecs missed. Stop and report rather than committing — for each entry decide whether it belongs to this release (its directory is missing from `PLUGIN_PATHS` — add it) or is unrelated in-flight work that should stay out. Never commit past a non-empty second list without accounting for every line.
 
 ```bash
 git -C "<REPO_ROOT>" commit -m "<user commit message>
