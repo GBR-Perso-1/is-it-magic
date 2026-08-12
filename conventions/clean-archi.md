@@ -33,6 +33,21 @@ Infrastructure is never referenced by Application or Domain.
 - Query → DTO projection inside the query (single SQL round-trip). Load-then-map only for a polymorphic hierarchy where a shared projection would force formula duplication.
 - Extract shared logic into services — no cross-handler duplication.
 
+## Seeding reference data
+
+Before seeding a table, decide who owns its rows:
+
+- **Model-owned** — rows change only when code changes, and code references their identity (enum mirrors: statuses, kinds, categories). Declare them in the entity configuration (`HasData`) — they ship with the migration, present in every environment.
+- **Runtime-owned** — rows have a lifecycle independent of releases (rates set by law, fee schedules, thresholds — anything an administrator must correct without a deploy). These are *not* seed data: they need a CRUD feature plus permanent bootstrap code for the initial rows.
+
+> Deciding question: *"Can this value change while the code stays the same?"* Yes → runtime-owned. No → model-owned.
+
+Getting it wrong is asymmetric: model-owned rows in production can only be changed by shipping a migration, and wiping them is unrecoverable without hand-writing one — the original migration is recorded as applied and never re-runs.
+
+`HasData` constraints to weigh before choosing it: primary keys must be explicit constants; values must be deterministic (no `DateTime.Now`, no `Guid.NewGuid()`, no FK resolved by lookup); rows are identical in every environment; and it bypasses `SaveChanges`, so no interceptor ever runs over seeded rows.
+
+Dev fixtures (sample customers, orders, sample hierarchies) are a third category — local seeder only, never the model.
+
 ## Testing Policy
 
 Domain and Application changes — entities, domain rules, command/query handlers, and validators —

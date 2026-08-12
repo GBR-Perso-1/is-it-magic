@@ -89,11 +89,18 @@ Not every plugin has every directory. Git aborts the **entire** `add` with `fata
 ```bash
 cd "<REPO_ROOT>"
 PLUGIN_PATHS=""
-for d in .claude-plugin skills agents rules templates hooks commands; do
-  [ -d "$d" ] && PLUGIN_PATHS="$PLUGIN_PATHS $d"
+for d in .claude-plugin skills agents rules conventions templates hooks commands; do
+  if [ -d "$d" ]; then PLUGIN_PATHS="$PLUGIN_PATHS $d"; fi
 done
+[ -n "$PLUGIN_PATHS" ] || { echo "No plugin content directories found in $PWD — stop and report."; exit 1; }
 git -C "<REPO_ROOT>" add -- $PLUGIN_PATHS
 ```
+
+Use the `if ... then ... fi` form inside the loop, **not** `[ -d "$d" ] && PLUGIN_PATHS=...`. A `for` loop exits with the status of its last command, so with the `&&` form a final directory that does not exist (`commands` is usually absent) makes the whole loop return non-zero. Chained as `probe && git add ...`, the `add` is then silently skipped and the commit stages nothing. The `if` form always exits `0`.
+
+The `-n` guard exists because `git add --` with no pathspec is a silent no-op that exits `0`, which would otherwise produce an empty commit rather than an error.
+
+Keep this directory list in step with the plugin's actual content directories. A directory that holds real plugin content but is missing from the list fails the same silent way: the commit succeeds carrying only the version bump, and the change it was meant to ship is left behind in the working tree.
 
 Confirm the staged set before committing — if anything unexpected appears, stop and report it rather than committing:
 
