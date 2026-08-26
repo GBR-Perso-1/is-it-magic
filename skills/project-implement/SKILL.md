@@ -100,7 +100,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
    - Evaluate the test report:
      - **All pass** → proceed to Phase 4.
      - **Failures due to source bugs** → pass the failing test details back to the **developer agent** via `SendMessage` to fix. Then re-run Phase 3 (spawn a fresh test-writer agent).
-     - **Maximum 2 iterations** of the dev↔test loop. If tests still fail after 2 rounds, present via `AskUserQuestion`:
+     - **Maximum 3 iterations** of the dev↔test loop. If tests still fail after 3 rounds, present via `AskUserQuestion`:
        - `Continue iterating`
        - `Skip failing tests and proceed to review`
        - `Stop here — I'll fix manually`
@@ -114,8 +114,8 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
    - Verdict `CONFIRMED_RED` → proceed to (d).
    - Verdict `n/a` should not occur on this path — if seen, treat as `SCAFFOLD_DEFECT` (go to (c)).
 
-   b. If any result is Fail (source bug) against a file in `OTHER_FILES` (already fully implemented by Phase 2, not a `MATCHED_FILES` stub) → this is a genuine bug, unrelated to RED-confirmation. Route it exactly as the `TEST_FIRST_ACTIVE = false` flow's source-bug path: `SendMessage` to the developer to fix, then repeat (a) with a fresh test-writer. This consumes one iteration of the same Phase-3 dev↔test loop counter used at step (e) — max 2 total, combined across (b) and (e). If this shared counter is exhausted during the RED round (two `OTHER_FILES` fix cycles before RED is confirmed), (e)'s GREEN verification is skipped and the `AskUserQuestion` fallback fires immediately on the first GREEN attempt — an accepted safety valve, since a change needing two or more `OTHER_FILES` fixes before RED is confirmed is already unhealthy.
-   c. **Any scaffold-defect** → `SendMessage` the same developer agent to correct the stub signatures only (no behaviour change), then repeat (a) with a fresh test-writer agent. Cap this scaffold-fix sub-loop at **2 attempts**, tracked separately from and never counted against the GREEN loop's max-2 cap. On exhaustion, present via `AskUserQuestion`:
+   b. If any result is Fail (source bug) against a file in `OTHER_FILES` (already fully implemented by Phase 2, not a `MATCHED_FILES` stub) → this is a genuine bug, unrelated to RED-confirmation. Route it exactly as the `TEST_FIRST_ACTIVE = false` flow's source-bug path: `SendMessage` to the developer to fix, then repeat (a) with a fresh test-writer. This consumes one iteration of the same Phase-3 dev↔test loop counter used at step (e) — max 3 total, combined across (b) and (e). If this shared counter is exhausted during the RED round (three `OTHER_FILES` fix cycles before RED is confirmed), (e)'s GREEN verification is skipped and the `AskUserQuestion` fallback fires immediately on the first GREEN attempt — an accepted safety valve, since a change needing three or more `OTHER_FILES` fixes before RED is confirmed is already unhealthy.
+   c. **Any scaffold-defect** → `SendMessage` the same developer agent to correct the stub signatures only (no behaviour change), then repeat (a) with a fresh test-writer agent. Cap this scaffold-fix sub-loop at **2 attempts**, tracked separately from and never counted against the GREEN loop's max-3 cap. On exhaustion, present via `AskUserQuestion`:
       - `Continue adjusting the stub signatures`
       - `Skip test-first for this change and implement directly`
       - `Stop here — I'll fix manually`
@@ -123,7 +123,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
    e. Spawn a fresh test-writer agent to verify GREEN. Evaluate using the exact same rules as the `TEST_FIRST_ACTIVE = false` bullet above:
       - **All pass** → proceed to Phase 4.
       - **Failures due to source bugs** → `SendMessage` to the developer to fix, then repeat (e) with a fresh test-writer.
-      - **Maximum 2 iterations total** of this Phase-3 dev↔test loop — counting this spawn plus any (b) bug-fix cycle already consumed during the RED round. On exhaustion, present the same `AskUserQuestion` fallback: `Continue iterating` / `Skip failing tests and proceed to review` / `Stop here — I'll fix manually`.
+      - **Maximum 3 iterations total** of this Phase-3 dev↔test loop — counting this spawn plus any (b) bug-fix cycle already consumed during the RED round. On exhaustion, present the same `AskUserQuestion` fallback: `Continue iterating` / `Skip failing tests and proceed to review` / `Stop here — I'll fix manually`.
 
 ### Phase 4 — Review (Quality, then Design + Perf)
 
@@ -158,7 +158,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
     - **No violations or warnings** → proceed to Phase 5.
     - **Implementation errors only** (code quality issues, bugs, style) → pass findings to the **developer agent** via `SendMessage` for corrections. Re-run Phase 3 (testing), then **re-run only the reviewers that previously flagged issues** — skip reviewers that already passed.
     - **Design errors** (wrong abstraction, domain boundary violation, requirement mismatch, missing functionality) → pass findings back to the **architect agent** via `SendMessage` to revise the plan. Re-run from Phase 2 with all reviewers reset.
-    - **Maximum 2 iterations** of the full review loop. If issues persist, present via `AskUserQuestion`:
+    - **Maximum 3 iterations** of the full review loop. If issues persist, present via `AskUserQuestion`:
       - `Continue iterating`
       - `Accept current state — I'll handle remaining issues`
       - `Stop here — I'll review and roll back myself`
@@ -262,7 +262,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 5. Evaluate the test report:
    - **All pass** → proceed to Phase 3.
    - **Failures due to source bugs** → pass the failing test details back to the **developer agent** via `SendMessage` to fix. Then re-run Phase 2 (spawn a fresh test-writer agent).
-   - **Maximum 2 iterations** of the dev↔test loop. If tests still fail after 2 rounds, present via `AskUserQuestion`:
+   - **Maximum 3 iterations** of the dev↔test loop. If tests still fail after 3 rounds, present via `AskUserQuestion`:
      - `Continue iterating`
      - `Promote to full — add review now`
      - `Stop here — I'll fix manually`
@@ -287,9 +287,9 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 - **Always use `SendMessage`** to continue an existing agent rather than spawning a new one (except for the test-writer, which should always be spawned fresh each iteration since it re-analyses changes from scratch).
 - **Never apply fixes yourself** — always delegate to the appropriate agent.
-- **Track iteration counts** and enforce the maximum of **2 per loop** to avoid infinite cycles.
-- Track the RED-confirmation sub-loop (scaffold-defect retries, max 2) separately from the GREEN dev↔test loop (max 2) — the initial expected RED never counts as a failed iteration of either. `OTHER_FILES` source-bug fixes during the RED round (step (b)) draw from the GREEN loop's shared max-2 budget.
-- **Only re-run reviewers that flagged issues** in iteration 2 — do not re-spawn reviewers that already passed.
+- **Track iteration counts** and enforce the maximum of **3 per loop** to avoid infinite cycles.
+- Track the RED-confirmation sub-loop (scaffold-defect retries, max 2) separately from the GREEN dev↔test loop (max 3) — the initial expected RED never counts as a failed iteration of either. `OTHER_FILES` source-bug fixes during the RED round (step (b)) draw from the GREEN loop's shared max-3 budget.
+- **Only re-run reviewers that flagged issues** in later iterations — do not re-spawn reviewers that already passed.
 - The quality reviewer's auto-fix always runs to completion, alone, before any read-only reviewer starts — never parallelise a mutating reviewer with a read-only one.
 - The Phase 4 pipeline checkpoint (`CHECKPOINT_SHA`) is internal only — never mention it or its underlying git commands in user-facing output; only a recovery outcome, if triggered, is reported.
 - When routing errors back to agents, include the **specific findings** and **file/line references** so the agent has full context.

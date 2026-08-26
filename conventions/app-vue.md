@@ -43,3 +43,21 @@ Code starts close to where it is used and migrates outward as reuse grows:
 
 - Prefer the project's component library over hand-rolled CSS.
 - Use design tokens / CSS variables, not hardcoded colours — theming and dark mode depend on it.
+
+## Testing Policy
+
+Store and composable changes — Pinia actions and getters, and the logic inside `useXxx` composables —
+are developed test-first (RED → GREEN):
+
+1. The developer scaffolds the signatures/stubs needed (store action shells, composable shells returning
+   the `{ data, loading, error }` shape) — compiling and type-checking, but with no real behaviour.
+2. The test-writer derives tests from the architect's Test Strategy and the requirements, runs them, and
+   confirms true RED — every test fails because the behaviour is missing, not because of a type error or
+   a wrong assumption about the stub.
+3. Only once RED is confirmed does the developer implement the real behaviour, to GREEN.
+
+Components and views are deliberately excluded. Their behaviour is mostly rendering, where a fail-first
+assertion locks in markup rather than logic. Extract the logic into a composable and this policy covers
+it — which is the same direction the ~200–300 line split rule already pushes.
+
+**Governed layers**: Stores, Composables
