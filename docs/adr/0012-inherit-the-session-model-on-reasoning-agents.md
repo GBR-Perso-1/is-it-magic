@@ -1,6 +1,6 @@
 # 0012. Inherit the session model on the reasoning agents
 
-**Status**: Accepted
+**Status**: Superseded by [ADR-0015](0015-repin-the-reasoning-agents-to-sonnet.md)
 **Date**: 2026-08-07
 **Amended by**: [ADR-0014](0014-raise-correction-loop-budgets-to-three-passes.md) (the review loop that bounds reviewer cost now allows three runs)
 

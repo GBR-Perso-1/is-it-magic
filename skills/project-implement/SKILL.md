@@ -95,7 +95,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 6. Branch on `TEST_FIRST_ACTIVE` (determined in Phase 1):
 
    **`TEST_FIRST_ACTIVE = false`** — unchanged dev↔test loop:
-   - If the developer's inline test run from Phase 2 showed failures unrelated to missing test coverage (i.e. source bugs), pass the failures back to the **developer agent** via `SendMessage` to fix them before proceeding. Skip directly to Phase 4 if the inline run was clean.
+   - If the developer's inline test run from Phase 2 showed failures unrelated to missing test coverage (i.e. source bugs), or — whether or not an inline run happened — its report shows a red **Build / Verify Status** or a fix budget exhausted under **Deviations from Plan**, pass the failures back to the **developer agent** via `SendMessage` **once**. Whatever that single continuation returns, continue to the next bullet: anything still failing reaches the test-writer and enters the max-3 dev↔test loop below, never a second inline continuation. If the inline run was clean, or there was none (Draft promotion), and the report is not red, continue to the next bullet directly. The inline run is a smoke check on the developer's own work, never a substitute for the test-writer, which is always spawned.
    - Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/test-writer.md`. Pass it: (1) the **original requirements**, (2) the **Test Strategy section** from the architect's plan. The test-writer derives test scenarios from the requirements — not from what the developer coded.
    - Evaluate the test report:
      - **All pass** → proceed to Phase 4.
@@ -152,12 +152,15 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
       - **Design reviewer**: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-design.md` — requirement coverage, architectural boundaries, abstraction quality, consistency.
       - **Performance reviewer** *(when runtime code changed)*: `${CLAUDE_PLUGIN_ROOT}/agents/reviewer-perf.md` — slow queries, N+1, unbounded loads, expensive loops, missing caching, front-end perf.
 
-10. Collect all reports. Record which reviewers **passed** and which **flagged issues**. Present findings to the user.
+10. Collect all reports. Record which reviewers **passed** (no Violations) and which **flagged Violations**. Separately record every Warning and Suggestion — regardless of which reviewer raised it or whether that reviewer otherwise passed — as the **review follow-up list** (file:line, one-line finding, the reviewer's recommendation). Present findings to the user.
 
-11. Evaluate findings:
-    - **No violations or warnings** → proceed to Phase 5.
-    - **Implementation errors only** (code quality issues, bugs, style) → pass findings to the **developer agent** via `SendMessage` for corrections. Re-run Phase 3 (testing), then **re-run only the reviewers that previously flagged issues** — skip reviewers that already passed.
-    - **Design errors** (wrong abstraction, domain boundary violation, requirement mismatch, missing functionality) → pass findings back to the **architect agent** via `SendMessage` to revise the plan. Re-run from Phase 2 with all reviewers reset.
+11. Evaluate findings for **Violations** — a Violation is a reviewer finding marked Violation, or a requirement-coverage failure or missing functionality reported by the design reviewer. Warnings and Suggestions never trigger this evaluation; they only feed the review follow-up list carried to Phase 5.
+    - **No violations** → proceed to Phase 5, carrying the review follow-up list forward.
+    - **Implementation errors only** (code quality issues, bugs, style — Violations) → spawn a **fresh developer agent** (`${CLAUDE_PLUGIN_ROOT}/agents/developer.md`) — do not `SendMessage` the previous instance. Pass it the **architecture plan** (or, when Phase 4 was entered from Increment mode's "Promote to full" and no plan exists, the **Phase 0 implementation brief** with the explicit instruction: **"There is no architect plan for this run. Treat the brief as the sole authoritative specification."**), the **original requirements**, the **Implementation Reports of every previous developer instance in this run** (the first covers the implementation, later ones only their round's corrections — together they are the state the new instance needs) and the **findings**. Instruct it to apply the corrections only, then **run the project's test suite inline** before returning, as in step 4, so that Phase 3's first bullet has a result to read. Re-run Phase 3 (testing) — its `SendMessage` continuations now address this new instance — then **re-run only the reviewers that previously flagged Violations** — skip reviewers that already passed.
+    - **Design errors** (wrong abstraction, domain boundary violation, requirement mismatch, missing functionality — Violations) → pass findings back to the **architect agent** via `SendMessage` to revise the plan; it returns a **Design Correction**. Then re-verify only what the revision invalidates:
+      - Spawn a **fresh developer agent** with exactly the inputs the implementation-error path passes, plus the architect's **Design Correction** alongside the plan. Instruct it to apply the revision only, then **run the project's test suite inline** before returning, as in step 4. Its **Changes Made** file list is this round's **delta**.
+      - Re-run Phase 3 (testing) unless the delta is docs/config-only under step 8's relevance test **and** the developer's report is clean — in that case the previous round's tests stand and Phase 3 is skipped.
+      - **Re-run only the reviewers that previously flagged Violations**, plus any previously-passed reviewer whose verdict is **stale**, plus any reviewer the previous round **skipped** whose relevance the delta now establishes — re-apply step 8's relevance test to the delta, so a Design Correction that introduces the run's first runtime code spawns the performance reviewer for the first time. A passed verdict is stale iff the delta's file list intersects the file list in that reviewer's report (`**Files reviewed**` / `**Files analysed**`), or the delta contains a file that appears in no reviewer's most recent report (a file new this round). A passed reviewer that is not stale is not re-spawned. Whenever the quality reviewer runs, it still runs alone and first, as in 9a.
     - **Maximum 3 iterations** of the full review loop. If issues persist, present via `AskUserQuestion`:
       - `Continue iterating`
       - `Accept current state — I'll handle remaining issues`
@@ -175,6 +178,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
     - What was implemented (files created/modified)
     - Test results (pass/fail counts)
     - Review outcome (clean / accepted with notes)
+    - Review follow-ups (Warnings and Suggestions not looped on): <list, or None>
 14. Ask via `AskUserQuestion`:
     - `Commit these changes (Recommended)`
     - `I want to review the changes manually`
@@ -208,6 +212,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 5. Present a final summary to the user:
    - What was implemented (files created/modified)
+   - The developer's **Build / Verify Status** — a ❌, or a fix budget exhausted under **Deviations from Plan**, is called out explicitly as a red build the user must resolve or promote
    - A reminder that no tests or reviews were run — this output is draft quality
 6. Ask via `AskUserQuestion`:
    - `Promote to full — run tests and review now (Recommended)`
@@ -232,6 +237,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 3. Present a final summary to the user:
    - What was changed (files modified)
+   - The developer's **Build / Verify Status** — a ❌, or a fix budget exhausted under **Deviations from Plan**, is called out explicitly
    - A reminder to review the diff before committing
 
 > Quick mode ends here — no confirmation prompt. Review the diff and commit when ready.
@@ -254,7 +260,7 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 ### Phase 2 — Testing (Test Agent)
 
-3. If the developer's inline test run from Phase 1 showed failures unrelated to missing test coverage (i.e. source bugs), pass the failures back to the **developer agent** via `SendMessage` to fix them before proceeding. Skip directly to Phase 3 if the inline run was clean.
+3. If the developer's inline test run from Phase 1 showed failures unrelated to missing test coverage (i.e. source bugs) — including a fix budget the developer reports as exhausted under Deviations from Plan — pass the failures back to the **developer agent** via `SendMessage` **once**. Whatever that single continuation returns, continue to step 4: anything still failing reaches the test-writer and enters the max-3 dev↔test loop at step 5, never a second inline continuation. If the inline run was clean, continue to step 4 directly. The inline run is a smoke check on the developer's own work, never a substitute for the test-writer, which is always spawned.
 
 4. Spawn the agent defined in `${CLAUDE_PLUGIN_ROOT}/agents/test-writer.md`.
    - Pass it: (1) the **original requirements**, and (2) this explicit instruction: **"There is no architect plan for this run. Derive your test scenarios directly from the requirement brief alone — treat the brief as the sole authoritative specification of what the system must do. Do not invent scenarios from the implementation."**
@@ -285,11 +291,12 @@ If `$ARGUMENTS` is a non-empty string that does not start with a recognised mode
 
 ## Orchestration Rules
 
-- **Always use `SendMessage`** to continue an existing agent rather than spawning a new one (except for the test-writer, which should always be spawned fresh each iteration since it re-analyses changes from scratch).
+- **Always use `SendMessage`** to continue an existing agent rather than spawning a new one, with two exceptions: the test-writer, which is always spawned fresh each iteration since it re-analyses changes from scratch; and the developer at each review-loop iteration (step 11), which is spawned fresh so that one developer instance never carries more than one review round — continued across rounds, its context ratchets with no reset. Within a round (the inline fix, the Phase 3 dev↔test loop and the RED→GREEN steps (b) to (e)), the developer is continued via `SendMessage` as normal.
 - **Never apply fixes yourself** — always delegate to the appropriate agent.
 - **Track iteration counts** and enforce the maximum of **3 per loop** to avoid infinite cycles.
+- **Only Violations re-enter the review loop; Warnings and Suggestions are reported, never looped on.**
 - Track the RED-confirmation sub-loop (scaffold-defect retries, max 2) separately from the GREEN dev↔test loop (max 3) — the initial expected RED never counts as a failed iteration of either. `OTHER_FILES` source-bug fixes during the RED round (step (b)) draw from the GREEN loop's shared max-3 budget.
-- **Only re-run reviewers that flagged issues** in later iterations — do not re-spawn reviewers that already passed.
+- **Only re-run reviewers that flagged Violations** in later iterations — plus, on the design-error path only, passed reviewers whose verdict is stale under step 11's rule (the round's delta intersects the file list in the reviewer's report, or contains a file new this round) and any reviewer the previous round skipped whose step-8 relevance the delta now establishes. Never re-spawn a passed reviewer that is not stale.
 - The quality reviewer's auto-fix always runs to completion, alone, before any read-only reviewer starts — never parallelise a mutating reviewer with a read-only one.
 - The Phase 4 pipeline checkpoint (`CHECKPOINT_SHA`) is internal only — never mention it or its underlying git commands in user-facing output; only a recovery outcome, if triggered, is reported.
 - When routing errors back to agents, include the **specific findings** and **file/line references** so the agent has full context.

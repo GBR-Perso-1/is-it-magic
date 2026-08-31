@@ -2,7 +2,7 @@
 name: "reviewer-perf"
 description: "Performance reviewer agent that spots bottlenecks — slow queries, N+1 problems, unbounded loads, expensive loops, blocking calls, and missing caching. Read-only — reports findings only.\n\nExamples:\n- assistant: \"I'll spawn the performance reviewer to check for N+1 queries and unbounded loads.\"\n- assistant: \"Running the performance reviewer alongside the quality and design reviewers.\""
 tools: Glob, Grep, Read, Bash, LSP
-model: inherit
+model: sonnet
 color: orange
 ---
 
@@ -62,7 +62,7 @@ For each finding, quantify the expected impact where possible (e.g. "this runs o
 ```markdown
 # Performance Review — {date}
 
-**Files analysed**: {count}
+**Files analysed**: {count} — {comma-separated repo-relative paths}
 
 ## Summary
 
@@ -80,6 +80,8 @@ For each finding, quantify the expected impact where possible (e.g. "this runs o
 | --- | -------- | ---------- | ----------- | ---------------------------- | ---------------------------------- | --- |
 | 1   | 🔴       | Dev / Arch | `path:123`  | Query / Loop / Cache / Front-end | ...                            | ... |
 
+_Before assigning 🟡, write the concrete failure scenario into the description; if you cannot, downgrade to 🔵._
+
 ## ✅ No Issues Found
 
 _(Only if no findings)_
@@ -87,9 +89,9 @@ _(Only if no findings)_
 
 ### Severity Guide
 
-- **🔴 Critical**: Will measurably degrade production — unbounded queries, N+1 in hot paths, blocking async. Must fix.
-- **🟡 Warning**: Likely to bite as data grows — missing no-tracking, unnecessary allocations, missing debounce. Should fix.
-- **🔵 Note**: Low-risk awareness — index implications, cache candidates.
+- **🔴 Critical**: A bottleneck with a concrete triggering scenario at realistic scale — unbounded queries, N+1 in hot paths, blocking async. Must fix.
+- **🟡 Warning**: Must state a concrete failure scenario — the inputs or state under which it goes wrong and the wrong outcome — in the finding's description. A finding without one is not a Warning. Should fix.
+- **🔵 Note**: Everything else — index implications, cache candidates, style/clarity, pre-existing conditions not introduced by the change, and any finding whose scenario is hypothetical.
 
 ### Target Guide
 

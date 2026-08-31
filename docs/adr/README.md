@@ -23,9 +23,13 @@ Where a decision post-dates the review, its own date says so.
 | [0009](0009-commit-direct-to-main.md) | Commit direct to main, no PR machinery | Accepted | 2026-08-07 |
 | [0010](0010-keep-skills-deterministic-state-machines.md) | Keep skills deterministic state machines | Accepted (conditional) | 2026-08-07 |
 | [0011](0011-author-reports-in-markdown.md) | Author reports in Markdown, not HTML | Accepted | 2026-08-07 |
-| [0012](0012-inherit-the-session-model-on-reasoning-agents.md) | Inherit the session model on the reasoning agents | Accepted | 2026-08-07 |
+| [0012](0012-inherit-the-session-model-on-reasoning-agents.md) | Inherit the session model on the reasoning agents | Superseded by ADR-0015 | 2026-08-07 |
 | [0013](0013-scan-for-security-on-cadence-not-per-change.md) | Scan for security on cadence, not per change | Accepted | 2026-08-07 |
 | [0014](0014-raise-correction-loop-budgets-to-three-passes.md) | Raise correction-loop budgets to three passes | Accepted | 2026-08-26 |
+| [0015](0015-repin-the-reasoning-agents-to-sonnet.md) | Repin the reasoning agents to Sonnet | Accepted | 2026-08-28 |
+| [0016](0016-bound-the-developer-per-gate-run-and-per-review-round.md) | Bound the developer per gate run and per review round | Accepted | 2026-08-28 |
+| [0017](0017-loop-only-on-violations.md) | Loop only on violations | Accepted | 2026-08-28 |
+| [0018](0018-re-verify-proportionally.md) | Re-verify proportionally on the design-error path | Accepted | 2026-08-31 |
 
 ## What is not here
 

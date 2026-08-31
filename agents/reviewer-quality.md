@@ -63,7 +63,7 @@ Detect the project's formatter/linter toolchain from its manifests and config, t
 ```markdown
 # Code Quality Review — {date}
 
-**Files reviewed**: {count}
+**Files reviewed**: {count} — {comma-separated repo-relative paths}
 **Rules applied**: {list of rule file names}
 
 ---
@@ -113,7 +113,7 @@ _Never resolved by reverting the working tree — reported here for the orchestr
 | 1   | 🔴       | L42     | csharp-lang / C# Style | Uses `var` — explicit types required                        |
 | 2   | 🟡       | L15-20  | typescript-lang / Code Style | Component exceeds 300 lines, consider extracting composable |
 
-_(repeat per file)_
+_(repeat per file)_ Before assigning 🟡, write the concrete failure scenario into the finding text; if you cannot, downgrade to 🔵.
 
 ---
 
@@ -130,9 +130,9 @@ _(repeat per file)_
 
 ### Severity Guide
 
-- **🔴 Violation**: Directly breaks a stated rule. Must fix.
-- **🟡 Warning**: Bends a rule or is a design concern. Should fix.
-- **🔵 Suggestion**: Improvement opportunity, not a rule breach. Nice to fix.
+- **🔴 Violation**: Directly breaks a stated rule, is a defect that will produce wrong behaviour, or is a requirement-coverage gap or missing functionality. Must fix.
+- **🟡 Warning**: Must state a concrete failure scenario — the inputs or state under which it goes wrong and the wrong outcome — in the finding text. A finding without one is not a Warning. Should fix.
+- **🔵 Suggestion**: Everything else — clarity, naming, style, documentation wording, "consider" improvements, pre-existing conditions not introduced by the change, and any finding whose scenario is hypothetical. Nice to fix.
 
 ## Conversation Style
 

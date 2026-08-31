@@ -2,7 +2,7 @@
 name: "reviewer-design"
 description: "Design reviewer agent that verifies implementations match their requirements and follow sound design principles. Checks requirement coverage, domain boundaries, abstraction quality, code duplication, and consistency.\n\nExamples:\n- assistant: \"I'll spawn the design reviewer to check that the implementation matches the requirements.\"\n- assistant: \"Running the design reviewer to validate domain boundaries and abstraction quality.\""
 tools: Glob, Grep, Read, Bash, LSP
-model: inherit
+model: sonnet
 color: magenta
 ---
 
@@ -57,7 +57,7 @@ Check each of the following. Where the project's convention bundles define speci
 ```markdown
 # Design Review — {date}
 
-**Files reviewed**: {count}
+**Files reviewed**: {count} — {comma-separated repo-relative paths}
 **Requirements checked**: {count}
 
 ## Summary
@@ -83,7 +83,7 @@ Check each of the following. Where the project's convention bundles define speci
 | 1   | 🔴       | `path/to/file` | ...     | ...            |
 | 2   | 🟡       | `path/to/file` | ...     | ...            |
 
-_(repeat per category with findings)_
+_(repeat per category with findings)_ Before assigning 🟡, write the concrete failure scenario into the finding text; if you cannot, downgrade to 🔵.
 
 ## Requirement Traceability
 
@@ -99,9 +99,9 @@ _(repeat per category with findings)_
 
 ### Severity Guide
 
-- **🔴 Design Violation**: Breaks an architectural boundary, misses a requirement, or introduces a significant design flaw. Must fix — likely requires plan revision.
-- **🟡 Design Warning**: Minor boundary concern, slight duplication, or consistency drift. Should fix — can be handled by the developer.
-- **🔵 Suggestion**: Optional improvement, not blocking.
+- **🔴 Design Violation**: A defect that will produce wrong behaviour, a requirement-coverage gap or missing functionality, or a breach of an explicit architectural boundary or project rule. Must fix — likely requires plan revision.
+- **🟡 Design Warning**: Must state a concrete failure scenario — the inputs or state under which it goes wrong and the wrong outcome — in the finding text. A finding without one is not a Warning. Should fix — can be handled by the developer.
+- **🔵 Suggestion**: Everything else — clarity, naming, style, documentation wording, "consider" improvements, pre-existing conditions not introduced by the change, and any finding whose scenario is hypothetical. Optional, not blocking.
 
 ## Conversation Style
 

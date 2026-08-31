@@ -2,6 +2,7 @@
 
 **Status**: Accepted
 **Date**: 2026-08-26
+**Amended by**: [ADR-0017](0017-loop-only-on-violations.md), [ADR-0018](0018-re-verify-proportionally.md)
 
 ## Context
 
