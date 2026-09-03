@@ -47,6 +47,8 @@ When `$ARGUMENTS` is empty:
    - Wait for the agent to return its summary, then present it:
 
      ```markdown
+     <At-a-glance digest — see "Shared: At-a-glance digest" below. This path ends the skill, so use the closing line without the `/project-decide` clause.>
+
      ## Repository Archaeology — Summary
 
      ### Purpose
@@ -175,6 +177,8 @@ Same as Investigate Mode Phase 2.
 #### Phase 3 — Synthesise and report
 
 ```markdown
+<At-a-glance digest — see "Shared: At-a-glance digest" below, with the `/project-decide` clause.>
+
 ## Debug Report — <one-line issue title>
 
 ### Issue
@@ -316,6 +320,8 @@ Same as Debug Mode Phase 2.
 #### Phase 3 — Synthesise and report
 
 ```markdown
+<At-a-glance digest — see "Shared: At-a-glance digest" below, with the `/project-decide` clause.>
+
 ## Investigation Report — <one-line question title>
 
 ### Question
@@ -372,6 +378,30 @@ After presenting the Investigation Report, ask via `AskUserQuestion`:
 
 If **"Continue to /project-decide now"**: invoke `/project-decide` with no arguments — it locates this Investigation Report in the conversation automatically.
 If **"Stop here"**: end the skill; the report remains in the conversation.
+
+---
+
+## Shared: At-a-glance digest
+
+Insert this block immediately above the report's own `## …` heading, inside the same fenced
+template. Additive only — never replace or reorder anything below it.
+
+```markdown
+## At a glance
+
+**In one line**: <the answer / what this is>
+
+**Shape**:
+<ASCII flow, at most 5 hops — e.g. `Controller → Service → Repository → SQL (fails here)` — or one line of prose if no traceable path applies>
+
+> Digest only. The full report below is unabridged<closing clause — see below>.
+```
+
+**Closing clause — Debug Report and Investigation Report**: ` and is what \`/project-decide\` reads`. Both are located by `/project-decide` Phase 0 by scanning the conversation for their own heading.
+
+**Closing clause — no-argument archaeology path**: none — the sentence ends at "unabridged". That path ends the skill (see step 2 under *No-argument behaviour*); there is no report here for `/project-decide` to read, so asserting the handoff would be false.
+
+**Bound**: at most 8 lines, at most ~60 words. No diagrams — this output is printed in a terminal. If the finding has no traceable path, write one line of prose in **Shape** rather than drawing a nominal flow.
 
 ---
 

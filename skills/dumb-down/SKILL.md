@@ -1,6 +1,6 @@
 ---
-name: explain-plainly
-description: "Re-explain something that came out obscure — too abstract, too long, unreadable, or not grounded in a real example. Forces a didactic rewrite: the answer first, then one concrete case traced all the way through, re-derived from the source rather than recalled from the earlier explanation. Use this whenever the user signals that an explanation missed — 'I don't get it', 'you lost me', 'more simply', 'in plain English', 'ELI5', 'too much detail', 'dumb it down', 'that's just the definition again' — or asks for something already explained to be put another way, even if they never use the word 'explain'."
+name: dumb-down
+description: "Re-explain something that came out obscure — too abstract, too long, unreadable, or not grounded in a real example. Forces a didactic rewrite: the answer first, then one concrete case traced all the way through, re-derived from the source rather than recalled from the earlier explanation. Use this whenever the user signals that an explanation missed — 'I don't get it', 'you lost me', 'more simply', 'in plain English', 'ELI5', 'too much detail' (about something already explained), 'dumb it down', 'too much jargon', 'in normal words', 'you're using big words', 'stop using technical terms', 'that's just the definition again' — or asks for something already explained to be put another way, even if they never use the word 'explain'. Not for a first-pass orientation to an application or system: when the user wants the broad picture of an app they do not know yet — 'what is this app', 'the big picture', 'draw me the shape of it' — use `explain-visually` instead. This skill re-explains something already said in this conversation."
 ---
 
 The last explanation did not land. Rewrite it so it does.
@@ -74,8 +74,11 @@ One case per idea. Two cases of the same idea is padding.
 
 ## Rule 4 — Code is a citation, not the explanation
 
-The explanation is prose. A `file.cs:80` reference or a one-line snippet is there so the user
-can verify you, not to do your explaining for you.
+The explanation is yours to make — usually prose, and a diagram where the confusion is structural
+(a shape, a flow, a set of relationships). In that case the diagram **is** the explanation and the
+prose supports it; drawn in the terminal it must be ASCII, never unrendered mermaid source. What
+never explains for you is a pasted block of code. A `file.cs:80` reference or a one-line snippet is
+there so the user can verify you, not to do your explaining for you.
 
 - Quote at most one or two lines, and only the lines that carry the point.
 - Never paste a block and leave the reader to infer why it matters.
@@ -100,9 +103,32 @@ longer than the abstraction it replaces, that is the rewrite succeeding. The tes
 if you can delete a paragraph and lose nothing, it was padding, and padding is what you are
 here to remove.
 
+## Rule 6 — Everyday words, not big words
+
+Say it in the words a colleague would use across a desk, not the words a policy document would
+use. This applies to every line of the rewrite, not a final polish pass at the end — jargon
+buried in paragraph three defeats the rewrite as completely as jargon in the opening line.
+
+Prefer the everyday word over the technical one: "worth" over "valuation", "money you still owe"
+over "outstanding liability", "share" over "instrument". Where a domain term genuinely cannot be
+avoided — because it is the thing being explained, or the reader needs it to talk to others about
+this — expand it in plain words the first time it appears, then use it freely from there. Do not
+swap one piece of jargon for another that merely sounds friendlier: trading "leverage" for
+"gearing" is not a plain-words rewrite, it is the same problem in a different coat.
+
+Not this:
+
+> The valuation is computed net of the outstanding vendor-financing liability, applying a
+> pro-rata attribution across the holding period.
+
+This:
+
+> Take what the share is worth, subtract what you still owe on it. If you only held it part of
+> the year, count only that part.
+
 ## Style
 
-- Short sentences. Everyday words. Expand a domain term the first time it appears.
+- Short sentences.
 - No hedging ("it may be that", "arguably"), no meta-narration ("as I mentioned above").
 - Write in the language the user wrote in; otherwise British English.
 
@@ -120,5 +146,8 @@ Read the rewrite once more, and for each of these, note what it is protecting ag
    asked to remove.
 5. **Would someone who does not know this codebase follow it?** An explanation that only works
    for a reader who already knows is not an explanation.
+6. **Is every sentence in words someone outside this domain would recognise?** A rewrite that
+   trades one technical term for another, or leaves jargon standing in a later paragraph, has
+   moved the problem rather than fixed it.
 
 Fix what fails before sending — a rewrite that misses these lands the same way the first one did.

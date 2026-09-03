@@ -6,7 +6,7 @@ General-purpose Claude Code plugin providing an AI-assisted development workflow
 
 | Component  | Count | Items                                                                                                                                                                                                                                                                                                                              |
 | ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Skills** | 19    | `devbox-init`, `project-investigate`, `project-decide`, `project-requirements`, `project-implement`, `project-port`, `project-upgrade-npm-safe`, `project-upgrade-nuget`, `apply-conventions`, `repo-commit`, `repo-commit-and-deploy`, `repo-git-env`, `repo-git-trigger-workflow`, `repo-security-scan`, `plugin-commit`, `devbox-scan-secrets`, `devbox-set-context`, `az-query`, `session-to-skill` |
+| **Skills** | 21    | `devbox-init`, `project-investigate`, `project-decide`, `project-requirements`, `project-implement`, `project-port`, `project-upgrade-npm-safe`, `project-upgrade-nuget`, `apply-conventions`, `repo-commit`, `repo-commit-and-deploy`, `repo-git-env`, `repo-git-trigger-workflow`, `repo-security-scan`, `plugin-commit`, `devbox-scan-secrets`, `devbox-set-context`, `az-query`, `dumb-down`, `explain-visually`, `session-to-skill` |
 | **Agents** | 14    | `architect`, `developer`, `test-writer`, `reviewer-quality`, `reviewer-design`, `reviewer-perf`, `codebase-explorer`, `repo-archaeologist`, `project-locator`, `azure-investigator`, `scanner-secrets`, `scanner-injection`, `scanner-exposure`, `scanner-devbox`                            |
 | **Rules**  | 6     | `general`, `csharp-lang`, `typescript-lang`, `infra-lang`, `infra-naming`, `python-lang` — synced to `~/.claude/rules/` by `/devbox-init`                                                                                                                                                                                                     |
 
@@ -111,6 +111,13 @@ This syncs all bundled plugin rules into `~/.claude/rules/` so they load globall
 | `/devbox-scan-secrets` | Audit the local dev machine for exposed secrets — writes a CSV report to `.claude/secret-audit-<date>.csv`.         |
 | `/devbox-set-context`  | Manage the user-level `contexts.json` manifest describing your GitHub/Azure accounts.                               |
 | `/az-query`            | Read-only Azure lookups (app registrations, groups, Key Vault, resources) using natural language.                  |
+
+### Explanation
+
+| Skill               | Purpose                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `/dumb-down`        | Re-explain something that did not land — re-derived from the source, answer first, one worked example.                   |
+| `/explain-visually` | First-pass, diagram-led orientation to an app: data model, roles, workflow, data ownership; bounded, no internal wiring. |
 
 ### Meta
 

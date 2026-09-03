@@ -30,6 +30,7 @@ Where a decision post-dates the review, its own date says so.
 | [0016](0016-bound-the-developer-per-gate-run-and-per-review-round.md) | Bound the developer per gate run and per review round | Accepted | 2026-08-28 |
 | [0017](0017-loop-only-on-violations.md) | Loop only on violations | Accepted | 2026-08-28 |
 | [0018](0018-re-verify-proportionally.md) | Re-verify proportionally on the design-error path | Accepted | 2026-08-31 |
+| [0019](0019-give-the-human-reader-a-proactive-door.md) | Give the human-reader path its own proactive door | Accepted | 2026-09-03 |
 
 ## What is not here
 
